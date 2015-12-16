@@ -1,4 +1,5 @@
 require 'rubygems'
+gem 'icalendar', '1.5.4'
 require 'icalendar'
 require 'date'
 
@@ -180,8 +181,8 @@ class DateTime
 end
 
 class OutputCalendar
-  START_DATE  = Date.strptime("20150101", Date::DATE_FORMAT)
-  END_DATE    = Date.strptime("20160101", Date::DATE_FORMAT)
+  START_DATE  = Date.strptime("20160101", Date::DATE_FORMAT)
+  END_DATE    = Date.strptime("20170101", Date::DATE_FORMAT)
   FILENAME    = "CharlotteSchedule-#{START_DATE}-#{END_DATE}.ics"
 
   def initialize()
