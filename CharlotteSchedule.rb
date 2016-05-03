@@ -254,7 +254,7 @@ class OutputCalendar
     event = @ical.event
 
     event.start = DateTime.create(friday, 17)
-    event.end   = DateTime.create(friday.next_sunday(), 18)
+    event.end   = DateTime.create(friday.next_monday(), 9)
     event.summary = "Charlotte Fathers Day"
   end
 
@@ -282,10 +282,10 @@ class OutputCalendar
       thurs.end   = DateTime.create(friday, 18)
       thurs.summary = "Charlotte Overnight"
 
-      sun = @ical.event
-      sun.start = DateTime.create(friday.next_sunday(), 18)
-      sun.end   = DateTime.create(friday.next_monday(), 18)
-      sun.summary = "Charlotte Overnight"
+      #sun = @ical.event
+      #sun.start = DateTime.create(friday.next_sunday(), 18)
+      #sun.end   = DateTime.create(friday.next_monday(), 18)
+      #sun.summary = "Charlotte Overnight"
     else
       dinner = @ical.event
       dinner.start = DateTime.create(thursday, 17)
