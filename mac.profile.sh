@@ -1,6 +1,7 @@
 source ~/.alias
 
 function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; exit 1; }
+function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
 function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
 
 if [ "$TERM" = "linux" ]
@@ -14,8 +15,9 @@ else
 fi
 
 function removeUnwantedCharacters() {
+  local SCRIPT="${FUNCNAME[0]}"
   if [ -z "${1}" ]; then
-    echo "!ERROR: Need string to remove characters from."
+    abort "Need string to remove characters from."
   else
     local STRIPPED_STRING="$(echo "${1}" | sed -e 's/[ ]*//g')"
     STRIPPED_STRING="$(echo "${STRIPPED_STRING}" | sed -e 's/[ .,://&]/_/g')"
@@ -24,27 +26,31 @@ function removeUnwantedCharacters() {
 }
 
 function emptyCamera() {
-  local VOLUMES=("CANONEOS" "GECamera")
   local SCRIPT="${FUNCNAME[0]}"
+  local VOLUMES=("CANONEOS" "GECamera" "Picasa 3")
 
   for VOLUME in "${VOLUMES[@]}"; do
     local FULL_VOLUME="/Volumes/${VOLUME}"
     local VOLUME_DIR="${FULL_VOLUME}/DCIM"
     local DATE_FORMAT="$(date "+%Y%m%d")"
 
-    if [ -d "${VOLUME_DIR}" ]; then
-      local NEW_DIRECTORY="/Users/mcrockett/Camera/${DATE_FORMAT}"
+    if [ -d "${FULL_VOLUME}" ]; then
+      if [ -d "${VOLUME_DIR}" ]; then
+        local NEW_DIRECTORY="/Users/mcrockett/Camera/${DATE_FORMAT}"
 
-      if [ ! -d "${NEW_DIRECTORY}" ]; then
-        logCmnd mkdir ${NEW_DIRECTORY}
+        if [ ! -d "${NEW_DIRECTORY}" ]; then
+          logCmnd mkdir ${NEW_DIRECTORY}
+        fi
+
+        logCmnd find ${VOLUME_DIR} -iname "*.jpg" -exec mv {} ${NEW_DIRECTORY} \;
+        logCmnd find ${VOLUME_DIR} -iname "*.mov" -exec mv {} ${NEW_DIRECTORY} \;
+      else
+        logArgs "Path on device not as expected '${VOLUME_DIR}'."
       fi
-
-      logCmnd find ${VOLUME_DIR} -iname "*.jpg" -exec mv {} ${NEW_DIRECTORY} \;
-      logCmnd find ${VOLUME_DIR} -iname "*.mov" -exec mv {} ${NEW_DIRECTORY} \;
 
       logCmnd diskutil eject "${FULL_VOLUME}"
     else
-      echo "Device not connected '${FULL_VOLUME}'."
+      logArgs "Device not connected '${FULL_VOLUME}'."
     fi
   done
 }
@@ -122,8 +128,10 @@ function undoPreviousJava {
 }
 
 function set_java {
+  local SCRIPT="${FUNCNAME[0]}"
+
   if [ -z "${1}" ]; then
-    echo "!ERROR: Need java version that you want as first parameter."
+    abort "Need java version that you want as first parameter."
   else
     undoPreviousJava
     export M2_HOME=/Applications/ride-5.1.4-mac64/apache-maven-3.1.1
@@ -134,7 +142,7 @@ function set_java {
       #export JAVA_HOME=/Applications/ride-5.1.4-mac64/OracleJDK/Contents/Home/jre
       export JAVA_HOME=/Applications/corona-java-1.1.0//jdk-7u45-macosx-x64/Contents/Home
     else
-      echo "!ERROR: Unknown java version requested '${1}'."
+      abort "Unknown java version requested '${1}'."
     fi
 
     if [ -n "${M2_HOME}" ]; then
