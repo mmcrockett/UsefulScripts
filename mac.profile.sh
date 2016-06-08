@@ -68,7 +68,8 @@ function processPodcasts() {
     fi
 
     local FILENAME_BASE="${FILENAME%.mp3}"
-    local TITLE="$(mp3info "${FULLPATH}" | grep Title)"
+    local TITLE="$(mp3info -p "%t" "${FULLPATH}")"
+    local ARTIST="$(mp3info -p "%a""${FULLPATH}")"
 
     if [ -n "${TITLE}" ]; then
       TITLE="$(removeUnwantedCharacters "${TITLE}")"
@@ -79,7 +80,7 @@ function processPodcasts() {
     local FILENAME_SHORT="${DIRECTORY}/${FILENAME_BASE}${TITLE}.short.mp3"
     local FILENAME_FINAL="${DIRECTORY}/${FILENAME_BASE}${TITLE}.short.voice.mp3"
 
-    if [[ "${FILENAME_BASE##Ep}" != "${FILENAME_BASE}" ]]; then
+    if [[ "${ARTIST##*Bill Simmons*}" != "${ARTIST}" ]]; then
       local START_CUT=57
       local END_CUT=25
     elif [[ "${FILENAME_BASE##whatsthepoint}" != "${FILENAME_BASE}" ]]; then
