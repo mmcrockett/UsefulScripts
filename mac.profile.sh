@@ -25,6 +25,17 @@ function removeUnwantedCharacters() {
   fi
 }
 
+function trim() {
+  local SCRIPT="${FUNCNAME[0]}"
+  if [ -z "${1}" ]; then
+    abort "Need string to trim from."
+  else
+    local STRIPPED_STRING="${1##*( )}"
+    STRIPPED_STRING="${STRIPPED_STRING%%*( )}"
+    echo "${STRIPPED_STRING}"
+  fi
+}
+
 function emptyCamera() {
   local SCRIPT="${FUNCNAME[0]}"
   local VOLUMES=("CANONEOS" "GECamera" "Picasa 3")
@@ -69,7 +80,6 @@ function processPodcasts() {
 
     local FILENAME_BASE="${FILENAME%.mp3}"
     local TITLE="$(mp3info -p "%t" "${FULLPATH}")"
-    local ARTIST="$(mp3info -p "%a""${FULLPATH}")"
 
     if [ -n "${TITLE}" ]; then
       TITLE="$(removeUnwantedCharacters "${TITLE}")"
@@ -80,15 +90,16 @@ function processPodcasts() {
     local FILENAME_SHORT="${DIRECTORY}/${FILENAME_BASE}${TITLE}.short.mp3"
     local FILENAME_FINAL="${DIRECTORY}/${FILENAME_BASE}${TITLE}.short.voice.mp3"
 
-    if [[ "${ARTIST##*Bill Simmons*}" != "${ARTIST}" ]]; then
-      local START_CUT=57
-      local END_CUT=25
-    elif [[ "${FILENAME_BASE##whatsthepoint}" != "${FILENAME_BASE}" ]]; then
+    
+    if [[ "${FILENAME_BASE##whatsthepoint}" != "${FILENAME_BASE}" ]]; then
       local START_CUT=57
       local END_CUT=45
-    else
+    elif [[ "${FILENAME_BASE##fivethirtyeightelections}" != "${FILENAME_BASE}" ]]; then
       local START_CUT=0
       local END_CUT=0
+    else
+      local START_CUT=57
+      local END_CUT=25
     fi
 
     if [[ "0" == "${START_CUT}" && "0" == "${END_CUT}" ]]; then
@@ -100,14 +111,14 @@ function processPodcasts() {
 
     if [ -d "${POD_PLAYER}" ]; then
       logCmnd mv ${FILENAME_FINAL} ${POD_PLAYER} || return $?
+    fi
 
-      if [ -f "${FILENAME_SHORT}" ]; then
-        logCmnd rm -f ${FILENAME_SHORT} || return $?
-      fi
+    if [ -f "${FILENAME_SHORT}" ]; then
+      logCmnd rm -f ${FILENAME_SHORT} || return $?
+    fi
 
-      if [ -f "${FULLPATH}" ]; then
-        logCmnd rm -f "${FULLPATH}" || return $?
-      fi
+    if [ -f "${FULLPATH}" ]; then
+      logCmnd rm -f "${FULLPATH}" || return $?
     fi
   done
 
@@ -154,6 +165,40 @@ function set_java {
       export PATH=$JAVA_HOME/bin:$PATH
     fi
   fi
+}
+
+function rename_mp3_to_mike_format() {
+  local SCRIPT="${FUNCNAME[0]}"
+
+  for FULLPATH in "$@"; do
+    logArgs "Processing '${FULLPATH}'."
+    local FILENAME="${FULLPATH##*/}"
+    local FILENAME_BASE="${FILENAME%.mp3}"
+    local DIRECTORY="${FULLPATH%/*}"
+    local ARTIST="$(trim ${FILENAME_BASE%-*})"
+    local TRACK_TITLE="$(trim ${FILENAME_BASE##*-})"
+    local NEW_FILE=""
+    local ANSWER=""
+
+    printf "Enter artist or return for '${ARTIST}'? "
+    read ANSWER
+    
+    if [[ "" != "${ANSWER}" ]]; then
+      ARTIST="${ANSWER}"
+    fi
+
+    printf "Enter track title or return for '${TRACK_TITLE}'? "
+    read ANSWER
+    
+    if [[ "" != "${ANSWER}" ]]; then
+      TRACK_TITLE="${ANSWER}"
+    fi
+
+    NEW_FILE="${DIRECTORY}/$(removeUnwantedCharacters "${ARTIST}")_$(removeUnwantedCharacters "${TRACK_TITLE}").mp3"
+
+    logCmnd mv "${FULLPATH}" "${NEW_FILE}"
+    logCmnd mp3info -a "${ARTIST}" -c "" -t "${TRACK_TITLE}" "${NEW_FILE}"
+  done
 }
 
 set_java 8
