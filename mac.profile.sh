@@ -1,4 +1,4 @@
-source ~/.alias
+source ~/mmcrockett/UsefulScripts/bash.alias.sh
 
 function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; exit 1; }
 function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
