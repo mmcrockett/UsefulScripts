@@ -1,8 +1,9 @@
 source ~/mmcrockett/UsefulScripts/bash.alias.sh
 
-function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; exit 1; }
+function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; return 1;}
 function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
 function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
+function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
 
 if [ "$TERM" = "linux" ]
 then
@@ -14,13 +15,30 @@ else
     #export PS1="\[\e]2;\u@\H \$PWD\a\e[01;31m\][\$myPWD]\$\[\e[0m\] " #red
 fi
 
+function resizeImages() {
+  local SCRIPT="${FUNCNAME[0]}"
+  local DIRECTORY="${1}"
+  local MAXSIZE="${2}"
+
+  if [ -z "${MAXSIZE}" ]; then
+    MAXSIZE=800;
+  fi
+
+  directoryExists "${DIRECTORY}" || return 1
+
+  logCmnd mkdir -p ${DIRECTORY}/resized
+  logCmnd rename -f 's/\.JPG$/.jpg/' ${DIRECTORY}/*.JPG
+  logCmnd cp ${DIRECTORY}/*.jpg ${DIRECTORY}/resized
+  logCmnd sips -Z $MAXSIZE ${DIRECTORY}/resized/*.jpg
+}
+
 function removeUnwantedCharacters() {
   local SCRIPT="${FUNCNAME[0]}"
   if [ -z "${1}" ]; then
     abort "Need string to remove characters from."
   else
     local STRIPPED_STRING="$(echo "${1}" | sed -e 's/[ ]*//g')"
-    STRIPPED_STRING="$(echo "${STRIPPED_STRING}" | sed -e 's/[ .,://&]/_/g')"
+    STRIPPED_STRING="$(echo "${STRIPPED_STRING}" | sed -e 's/[ .,''://&]/_/g')"
     echo "${STRIPPED_STRING}"
   fi
 }
@@ -124,6 +142,25 @@ function processPodcasts() {
 
   if [ -d "${POD_PLAYER}" ]; then
     logCmnd diskutil eject "${POD_PLAYER}"
+  fi
+}
+
+function git-resync-main-repo {
+  local SCRIPT="${FUNCNAME[0]}"
+  local BRANCH="master"
+  local IS_BRANCH="no"
+
+  if [ -n "${1}" ]; then
+    BRANCH="${1}"
+  fi
+
+  IS_BRANCH="$(git branch | grep "\*" | grep "${BRANCH}")"
+
+  if [ -z "${IS_BRANCH}" ]; then
+    abort "Not on the ${BRANCH} branch."
+  else
+    logCmnd git fetch upstream || (echo "FIX try 'git remote add upstream git@github.com:Example/Sample.git'" && return $?)
+    logCmnd git pull upstream ${BRANCH} || return $?
   fi
 }
 
