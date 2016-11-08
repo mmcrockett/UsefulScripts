@@ -161,6 +161,7 @@ function git-resync-main-repo {
   else
     logCmnd git fetch upstream || (echo "FIX try 'git remote add upstream git@github.com:Example/Sample.git'" && return $?)
     logCmnd git pull upstream ${BRANCH} || return $?
+    logCmnd git push || return $?
   fi
 }
 

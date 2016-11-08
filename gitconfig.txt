@@ -1,0 +1,10 @@
+[user]
+  name = Mike Crockett
+  email = "(none)"
+[push]
+  default = simple
+[core]
+  excludesfile = ~/.gitignore_global
+  autocrlf = input
+  safecrlf = warn
+  whitespace = tab-in-indent
