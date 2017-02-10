@@ -4,6 +4,7 @@ function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; return 1;}
 function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
 function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
 function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
+function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
 
 if [ "$TERM" = "linux" ]
 then
@@ -161,7 +162,7 @@ function git-resync-main-repo {
   else
     logCmnd git fetch upstream || (echo "FIX try 'git remote add upstream git@github.com:Example/Sample.git'" && return $?)
     logCmnd git pull upstream ${BRANCH} || return $?
-    logCmnd git push || return $?
+    logCmnd git push origin || return $?
   fi
 }
 
@@ -213,10 +214,18 @@ function rename_mp3_to_mike_format() {
     local FILENAME="${FULLPATH##*/}"
     local FILENAME_BASE="${FILENAME%.mp3}"
     local DIRECTORY="${FULLPATH%/*}"
-    local ARTIST="$(trim ${FILENAME_BASE%-*})"
-    local TRACK_TITLE="$(trim ${FILENAME_BASE##*-})"
+    local ARTIST="$(mp3info -p "%a" "${FULLPATH}")"
+    local TRACK_TITLE="$(mp3info -p "%t" "${FULLPATH}")"
     local NEW_FILE=""
     local ANSWER=""
+
+    if [ -z "${TRACK_TITLE}" ]; then
+      TRACK_TITLE="$(trim ${FILENAME_BASE##*-})"
+    fi
+
+    if [ -z "${ARTIST}" ]; then
+      ARTIST="$(trim ${FILENAME_BASE%-*})"
+    fi
 
     printf "Enter artist or return for '${ARTIST}'? "
     read ANSWER
@@ -237,6 +246,71 @@ function rename_mp3_to_mike_format() {
     logCmnd mv "${FULLPATH}" "${NEW_FILE}"
     logCmnd mp3info -a "${ARTIST}" -c "" -t "${TRACK_TITLE}" "${NEW_FILE}"
   done
+}
+
+function find-grep() {
+  local SCRIPT="${FUNCNAME[0]}"
+  local _GREP=""
+  local _GREPARGS="IH"
+  local _FILEGLOB=""
+  local _DIRECTORY="${PWD}"
+  local _USAGE_MSG=' [-n <fileglob> d <directory> g <grep arguments>] <grepword> Calls find with grep options.
+    -n <fileglob> Is passed to -name option, if missing causes -type f
+    -g <grepargs> Defaults to -IH.
+    -d <directory> Defaults to PWD.'
+
+  for (( OPTIND=0; OPTIND <= ${#@}; ++i )); do
+    while getopts "n:d:g:" option; do
+      case "${option}" in
+        n)
+          _FILEGLOB=${OPTARG}
+          ;;
+        d)
+          _DIRECTORY="${OPTARG}"
+          ;;
+        g)
+          _GREPARGS="${OPTARG}"
+          ;;
+        *)
+          abort "Invalid option '${OPTARG}'."
+          usage "${_USAGE_MSG}"
+          _USAGE_MSG=""
+          ;;
+      esac
+    done
+
+    if [ $OPTIND -le ${#@} ]; then
+      if [ -z "${_GREP}" ]; then
+        _GREP="${!OPTIND}"
+      else
+        _GREP="${_GREP} ${!OPTIND}"
+      fi
+    fi
+
+    OPTIND=$((OPTIND+1))
+  done
+
+  if [ -z "${_GREP}" ]; then
+    abort "Something to grep is required as an argument."
+    usage "${_USAGE_MSG}"
+    _USAGE_MSG=""
+  fi
+
+  if [ ! -d "${_DIRECTORY}" ]; then
+    abort "Directory not valid. '${_DIRECTORY}'."
+    usage "${_USAGE_MSG}"
+    _USAGE_MSG=""
+  fi
+
+  if [ -n "${_USAGE_MSG}" ]; then
+    if [ -z "${_FILEGLOB}" ]; then
+      cond=('-type' 'f')
+    else
+      cond=('-name' "${_FILEGLOB}")
+    fi
+
+    logCmnd find ${_DIRECTORY} "${cond[@]}" -exec grep -${_GREPARGS} "${_GREP}" {} \;
+  fi
 }
 
 set_java 8
