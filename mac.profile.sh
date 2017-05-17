@@ -254,19 +254,16 @@ function find-grep() {
   local _GREPARGS="IH"
   local _FILEGLOB=""
   local _DIRECTORY="${PWD}"
-  local _USAGE_MSG=' [-n <fileglob> d <directory> g <grep arguments>] <grepword> Calls find with grep options.
+  local _USAGE_MSG=' [-n <fileglob> -g <grep arguments> <directory>] <grepword> Calls find with grep options.
     -n <fileglob> Is passed to -name option, if missing causes -type f
     -g <grepargs> Defaults to -IH.
-    -d <directory> Defaults to PWD.'
+       <directory> Defaults to PWD.'
 
   for (( OPTIND=0; OPTIND <= ${#@}; ++i )); do
-    while getopts "n:d:g:" option; do
+    while getopts "n:g:" option; do
       case "${option}" in
         n)
           _FILEGLOB=${OPTARG}
-          ;;
-        d)
-          _DIRECTORY="${OPTARG}"
           ;;
         g)
           _GREPARGS="${OPTARG}"
@@ -280,7 +277,11 @@ function find-grep() {
     done
 
     if [ $OPTIND -le ${#@} ]; then
-      if [ -z "${_GREP}" ]; then
+      local _NOOPTARG="${!OPTIND}"
+
+      if [ -d "${_NOOPTARG}" ]; then
+        _DIRECTORY="${_NOOPTARG}"
+      elif [ -z "${_GREP}" ]; then
         _GREP="${!OPTIND}"
       else
         _GREP="${_GREP} ${!OPTIND}"
@@ -318,9 +319,9 @@ export HISTSIZE=3000
 complete -r cd
 complete -r scp
 
-export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
-PATH="/Users/mcrockett/perl5/bin${PATH+:}${PATH}"; export PATH;
-PATH="/opt/local/bin:/Users/mcrockett/perl5/bin${PATH+:}${PATH}"; export PATH;
+#export PATH="$PATH:$HOME/.rvm/bin" # Add RVM to PATH for scripting
+#PATH="/Users/mcrockett/perl5/bin${PATH+:}${PATH}"; export PATH;
+#PATH="/opt/local/bin:/Users/mcrockett/perl5/bin${PATH+:}${PATH}"; export PATH;
 PERL5LIB="/Users/mcrockett/perl5/lib/perl5${PERL5LIB+:}${PERL5LIB}"; export PERL5LIB;
 PERL_LOCAL_LIB_ROOT="/Users/mcrockett/perl5${PERL_LOCAL_LIB_ROOT+:}${PERL_LOCAL_LIB_ROOT}"; export PERL_LOCAL_LIB_ROOT;
 PERL_MB_OPT="--install_base \"/Users/mcrockett/perl5\""; export PERL_MB_OPT;
@@ -330,4 +331,8 @@ PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 MANPATH=/usr/local/opt/gnu-sed/libexec/gnuman/man1:$MANPATH
 MANPATH=/usr/local/opt/coreutils/libexec/gnuman/man1:$MANPATH
 
+export NVM_DIR="$HOME/.nvm"
+
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[[ -s "$HOME/perl5/perlbrew/etc/bashrc" ]] && source "$HOME/perl5/perlbrew/etc/bashrc" # Load perlbrew into a shell session *as a function*
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm" # Load RVM into a shell session *as a function*
