@@ -22,14 +22,7 @@ sourceFromList _SOURCE_LIST
 addToPathFromList _PATH_LIST
 softLinkFromList _SOFT_LINK_LIST
 
-if [ "$TERM" = "linux" ]; then
-    export PS1="\[\e[32;1m\]\u@\H > \[\e[0m\]"
-else
-    export PROMPT_COMMAND='tmp=${PWD%/*/*/*}; if [ ${#tmp} -gt 0 -a "$tmp" != "$PWD" ]; then myPWD=../${PWD:${#tmp}+1}; else myPWD=$PWD; fi'
-    export PS1="\[\e]2;\u@\H \$PWD\a\e[01;32m\][\$myPWD]\$\[\e[0m\] "  #green
-    #export PS1="\[\e]2;\u@\H \$PWD\a\e[01;36m\][\$myPWD]\$\[\e[0m\] " #teal
-    #export PS1="\[\e]2;\u@\H \$PWD\a\e[01;31m\][\$myPWD]\$\[\e[0m\] " #red
-fi
+setupPrompt "green"
 
 export HISTSIZE=3000
 complete -r cd

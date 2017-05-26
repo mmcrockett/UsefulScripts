@@ -3,6 +3,28 @@ function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
 function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
 function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
 function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
+function setupPrompt {
+  local COLOR="xx"
+
+  if [ "green" == "${1}" ]; then
+    COLOR="32"
+  elif [ "teal" == "${1}" ]; then
+    COLOR="36"
+  elif [ "red" == "${1}" ]; then
+    COLOR="31"
+  elif [ "blue" == "${1}" ]; then
+    COLOR="34"
+  else
+    abort "Color not recognized '${1}'."
+  fi
+
+  if [ "$TERM" = "linux" ]; then
+    export PS1="\[\e[32;1m\]\u@\H > \[\e[0m\]"
+  else
+    export PROMPT_COMMAND='tmp=${PWD%/*/*/*}; if [ ${#tmp} -gt 0 -a "$tmp" != "$PWD" ]; then myPWD=../${PWD:${#tmp}+1}; else myPWD=$PWD; fi'
+    export PS1="\[\e]2;\u@\H \$PWD\a\e[01;${COLOR}m\][\$myPWD]\$\[\e[0m\] "
+  fi
+}
 function sourceFromList() {
   local _FILE_LIST_NAME=$1[@]
   local _FILE_LIST=("${!_FILE_LIST_NAME}")
