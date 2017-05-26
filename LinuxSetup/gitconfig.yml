@@ -4,7 +4,7 @@
 [push]
   default = simple
 [core]
-  excludesfile = ~/.gitignore_global
+  excludesfile = ~/.gitignore
   autocrlf = input
   safecrlf = warn
   whitespace = tab-in-indent

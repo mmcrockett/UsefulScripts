@@ -3,7 +3,7 @@ require 'open-uri'
 
 class YahooBowlParser
   URLS = [
-    "http://football.fantasysports.yahoo.com/bowl/schedule",
+    "https://football.fantasysports.yahoo.com/bowl/schedule",
   ]
 
   def initialize()
