@@ -25,8 +25,8 @@ softLinkFromList _SOFT_LINK_LIST
 setupPrompt "green"
 
 export HISTSIZE=3000
-complete -r cd
-complete -r scp
+complete -r cd 2>/dev/null
+complete -r scp 2>/dev/null
 
 #PERL5LIB="/Users/mcrockett/perl5/lib/perl5${PERL5LIB+:}${PERL5LIB}"; export PERL5LIB;
 #PERL_LOCAL_LIB_ROOT="/Users/mcrockett/perl5${PERL_LOCAL_LIB_ROOT+:}${PERL_LOCAL_LIB_ROOT}"; export PERL_LOCAL_LIB_ROOT;
