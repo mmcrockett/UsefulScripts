@@ -1,3 +1,52 @@
+function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; return 1;}
+function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
+function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
+function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
+function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
+function sourceFromList() {
+  local _FILE_LIST_NAME=$1[@]
+  local _FILE_LIST=("${!_FILE_LIST_NAME}")
+
+  for _SOURCE_FILE_ in "${_FILE_LIST[@]}"; do
+    if [ -s "${_SOURCE_FILE_}" ]; then
+      source ${_SOURCE_FILE_}
+    fi
+  done
+}
+function addToPathFromList() {
+  local _FILE_LIST_NAME=$1[@]
+  local _FILE_LIST=("${!_FILE_LIST_NAME}")
+
+  for _PATH_LOCATION_ in "${_FILE_LIST[@]}"; do
+    if [ -s "${_PATH_LOCATION_}" ]; then
+      export PATH="${_PATH_LOCATION_}:${PATH}"
+    fi
+  done
+}
+function softLinkFromList() {
+  local _FILE_LIST_NAME=$1[@]
+  local _FILE_LIST=("${!_FILE_LIST_NAME}")
+
+  for FILE_PAIR in "${_FILE_LIST[@]}"; do
+    local _FILES=(${FILE_PAIR//:/ })
+    local _LN_SOURCE="${_FILES[0]}"
+    local _LN_TARGET="${_FILES[1]}"
+
+    if [ -z "${_LN_SOURCE}" ]; then
+      abort "No value passed for ln source '${1}'."
+    fi
+
+    if [ -z "${_LN_TARGET}" ]; then
+      abort "No value passed for ln target '${1}'."
+    fi
+
+    if [ ! -s "${_LN_TARGET}" ]; then
+      if [ -s "${_LN_SOURCE}" ]; then
+        ln -s ${_LN_SOURCE} ${_LN_TARGET}
+      fi
+    fi
+  done
+}
 function resizeImages() {
   local SCRIPT="${FUNCNAME[0]}"
   local DIRECTORY="${1}"
@@ -157,34 +206,6 @@ function undoPreviousJava {
   if [ -n "${M2_HOME}" ]; then
     export PATH="${PATH//${M2_HOME}}"
     unset M2_HOME
-  fi
-}
-
-function set_java {
-  local SCRIPT="${FUNCNAME[0]}"
-
-  if [ -z "${1}" ]; then
-    abort "Need java version that you want as first parameter."
-  else
-    undoPreviousJava
-    export M2_HOME=/Applications/ride-5.1.4-mac64/apache-maven-3.1.1
-
-    if [[ "${1}" == "8" ]]; then
-      export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_71.jdk/Contents/Home
-    elif [[ "${1}" == "7" ]]; then
-      #export JAVA_HOME=/Applications/ride-5.1.4-mac64/OracleJDK/Contents/Home/jre
-      export JAVA_HOME=/Applications/corona-java-1.1.0//jdk-7u45-macosx-x64/Contents/Home
-    else
-      abort "Unknown java version requested '${1}'."
-    fi
-
-    if [ -n "${M2_HOME}" ]; then
-      export PATH=$M2_HOME/bin:$PATH
-    fi
-
-    if [ -n "${JAVA_HOME}" ]; then
-      export PATH=$JAVA_HOME/bin:$PATH
-    fi
   fi
 }
 

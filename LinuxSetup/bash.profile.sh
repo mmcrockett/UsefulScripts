@@ -1,14 +1,9 @@
-function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; return 1;}
-function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
-function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
-function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
-function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
-
 readonly LINUX_SETUP_DIR="${HOME}/UsefulScripts.mmcrockett/LinuxSetup"
+
+[[ -s "${LINUX_SETUP_DIR}/bash.functions.sh" ]] && source "${LINUX_SETUP_DIR}/bash.functions.sh"
 
 readonly _SOURCE_LIST=(
   "${LINUX_SETUP_DIR}/bash.alias.sh"
-  "${LINUX_SETUP_DIR}/bash.functions.sh"
 )
 
 readonly _PATH_LIST=(
@@ -23,29 +18,9 @@ readonly _SOFT_LINK_LIST=(
   "${LINUX_SETUP_DIR}/gitignore_global.sh:${HOME}/.gitignore"
 )
 
-for _SOURCE_FILE_ in "${_SOURCE_LIST[@]}"; do
-  if [ -s "${_SOURCE_FILE_}" ]; then
-    source ${_SOURCE_FILE_}
-  fi
-done
-
-for _PATH_LOCATION_ in "${_PATH_LIST[@]}"; do
-  if [ -s "${_PATH_LOCATION_}" ]; then
-    export PATH="${_PATH_LOCATION_}:${PATH}"
-  fi
-done
-
-for _SOFT_LINK_PAIR_ in "${_SOFT_LINK_LIST[@]}"; do
-  _FILES=(${_SOFT_LINK_PAIR_//:/ })
-  _LN_SOURCE="${_FILES[0]}"
-  _LN_TARGET="${_FILES[1]}"
-
-  if [ ! -s "${_LN_TARGET}" ]; then
-    if [ -s "${_LN_SOURCE}" ]; then
-      ln -s ${_LN_SOURCE} ${_LN_TARGET}
-    fi
-  fi
-done
+sourceFromList _SOURCE_LIST
+addToPathFromList _PATH_LIST
+softLinkFromList _SOFT_LINK_LIST
 
 if [ "$TERM" = "linux" ]; then
     export PS1="\[\e[32;1m\]\u@\H > \[\e[0m\]"
