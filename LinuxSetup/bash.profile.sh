@@ -16,6 +16,7 @@ readonly _SOFT_LINK_LIST=(
   "${LINUX_SETUP_DIR}/vimrc.sh:${HOME}/.vimrc"
   "${LINUX_SETUP_DIR}/gitconfig.yml:${HOME}/.gitconfig"
   "${LINUX_SETUP_DIR}/gitignore_global.sh:${HOME}/.gitignore"
+  "${LINUX_SETUP_DIR}/gemrc.yml:${HOME}/.gemrc"
   "${HOME}/.bash_profile:${HOME}/.bashrc"
 )
 

@@ -26,16 +26,24 @@ function setupPrompt {
   fi
 }
 function installRvmAndRubies() {
-  if [ -z "$(command -v rvm)" ]; then
+  if [[ ! -s "$HOME/.rvm/scripts/rvm" ]]; then
     logArgs "Getting rvm..."
     curl -sSL https://get.rvm.io | bash -s stable || return $?
+
     [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
   fi
 
   while [ $# -gt 0 ]; do
-    rvm install ${1}
+    is_installed="$(rvm list | grep ${1})"
+
+    if [ -z "${is_installed}" ]; then
+      rvm install ${1}
+    fi
+
     shift
   done
+
+  logCmnd gem install bundler
 }
 function packagesFromList() {
   while [ $# -gt 0 ]; do
