@@ -26,7 +26,8 @@ function setupPrompt {
   fi
 }
 function installRvmAndRubies() {
-  logCmnd curl -sSL https://get.rvm.io | bash -s stable --ruby || return $?
+  logArgs "Getting rvm..."
+  curl -sSL https://get.rvm.io | bash -s stable --ruby || return $?
 
   while [ $# -gt 0 ]; do
     if [ -s "${1}" ]; then
