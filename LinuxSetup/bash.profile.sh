@@ -18,9 +18,9 @@ readonly _SOFT_LINK_LIST=(
   "${LINUX_SETUP_DIR}/gitignore_global.sh:${HOME}/.gitignore"
 )
 
-sourceFromList _SOURCE_LIST
-addToPathFromList _PATH_LIST
-softLinkFromList _SOFT_LINK_LIST
+sourceFromList "${_SOURCE_LIST[@]}"
+addToPathFromList "${_PATH_LIST[@]}"
+softLinkFromList "${_SOFT_LINK_LIST[@]}"
 
 setupPrompt "green"
 

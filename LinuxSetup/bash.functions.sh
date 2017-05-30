@@ -25,32 +25,35 @@ function setupPrompt {
     export PS1="\[\e]2;\u@\H \$PWD\a\e[01;${COLOR}m\][\$myPWD]\$\[\e[0m\] "
   fi
 }
-function sourceFromList() {
-  local _FILE_LIST_NAME=$1[@]
-  local _FILE_LIST=("${!_FILE_LIST_NAME}")
+function installRvmAndRubies() {
+  logCmnd curl -sSL https://get.rvm.io | bash -s stable --ruby || return $?
 
-  for _SOURCE_FILE_ in "${_FILE_LIST[@]}"; do
-    if [ -s "${_SOURCE_FILE_}" ]; then
-      source ${_SOURCE_FILE_}
+  while [ $# -gt 0 ]; do
+    if [ -s "${1}" ]; then
+      rvm install ${1}
     fi
+    shift
+  done
+}
+function sourceFromList() {
+  while [ $# -gt 0 ]; do
+    if [ -s "${1}" ]; then
+      source ${1}
+    fi
+    shift
   done
 }
 function addToPathFromList() {
-  local _FILE_LIST_NAME=$1[@]
-  local _FILE_LIST=("${!_FILE_LIST_NAME}")
-
-  for _PATH_LOCATION_ in "${_FILE_LIST[@]}"; do
-    if [ -s "${_PATH_LOCATION_}" ]; then
-      export PATH="${_PATH_LOCATION_}:${PATH}"
+  while [ $# -gt 0 ]; do
+    if [ -s "${1}" ]; then
+      export PATH="${1}:${PATH}"
     fi
+    shift
   done
 }
 function softLinkFromList() {
-  local _FILE_LIST_NAME=$1[@]
-  local _FILE_LIST=("${!_FILE_LIST_NAME}")
-
-  for FILE_PAIR in "${_FILE_LIST[@]}"; do
-    local _FILES=(${FILE_PAIR//:/ })
+  while [ $# -gt 0 ]; do
+    local _FILES=(${1//:/ })
     local _LN_SOURCE="${_FILES[0]}"
     local _LN_TARGET="${_FILES[1]}"
 
@@ -67,6 +70,7 @@ function softLinkFromList() {
         ln -s ${_LN_SOURCE} ${_LN_TARGET}
       fi
     fi
+    shift
   done
 }
 function resizeImages() {
