@@ -26,13 +26,20 @@ function setupPrompt {
   fi
 }
 function installRvmAndRubies() {
-  logArgs "Getting rvm..."
-  curl -sSL https://get.rvm.io | bash -s stable --ruby || return $?
+  if [ -z "$(command -v rvm)" ]; then
+    logArgs "Getting rvm..."
+    curl -sSL https://get.rvm.io | bash -s stable || return $?
+    [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+  fi
 
   while [ $# -gt 0 ]; do
-    if [ -s "${1}" ]; then
-      rvm install ${1}
-    fi
+    rvm install ${1}
+    shift
+  done
+}
+function packagesFromList() {
+  while [ $# -gt 0 ]; do
+    sudo apt-get -y install "${1}"
     shift
   done
 }
