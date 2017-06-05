@@ -47,7 +47,7 @@ function installRvmAndRubies() {
 }
 function packagesFromList() {
   while [ $# -gt 0 ]; do
-    sudo apt-get -y install "${1}"
+    sudo apt-get -yqq install "${1}"
     shift
   done
 }
