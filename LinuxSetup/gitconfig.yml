@@ -1,6 +1,6 @@
 [user]
   name = Mike Crockett
-  email = "(none)"
+  useConfigOnly = true
 [push]
   default = simple
 [core]
