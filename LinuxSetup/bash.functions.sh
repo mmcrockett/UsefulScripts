@@ -67,6 +67,14 @@ function addToPathFromList() {
     shift
   done
 }
+function backupFromList() {
+  while [ $# -gt 0 ]; do
+    if [ -s "${1}" ]; then
+      logCmnd mv "${1}" "${1##\.}.backup"
+    fi
+    shift
+  done
+}
 function softLinkFromList() {
   while [ $# -gt 0 ]; do
     local _FILES=(${1//:/ })
