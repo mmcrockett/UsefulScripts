@@ -69,8 +69,21 @@ function addToPathFromList() {
 }
 function backupFromList() {
   while [ $# -gt 0 ]; do
-    if [ -s "${1}" ]; then
-      logCmnd mv "${1}" "${1##\.}.backup"
+    local FILE="${1}"
+    local FULL_FILE="${FILE}"
+
+    if [ ! -f "${FULL_FILE}" ]; then
+      FULL_FILE="${HOME}/${FILE}"
+    fi
+
+    local FULL_BACKUP="${FILE##\.}.backup"
+
+    if [ -s "${FULL_FILE}" ]; then
+      if [ -L "${FULL_FILE}" ]; then
+        logCmnd rm "${FULL_FILE}"
+      else
+        logCmnd mv "${FULL_FILE}" "${FULL_BACKUP}"
+      fi
     fi
     shift
   done
