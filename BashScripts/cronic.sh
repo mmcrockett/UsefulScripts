@@ -48,7 +48,7 @@ if [ $RESULT -ne 0 -o -s "$ERR" ]; then
       fi
     done
 
-    if [ -n "$(mail --version | grep GNU)" ]; then
+    if [ -n "$(mail --version 2>/dev/null | grep GNU)" ]; then
       cat "${MSG}" | mail -s "Cron ${HOSTNAME} ${CMD_MSG}" -r "Cron" $MAILTO 
     else
       cat "${MSG}" | mail -s "Cron ${HOSTNAME} ${CMD_MSG}" $MAILTO 
