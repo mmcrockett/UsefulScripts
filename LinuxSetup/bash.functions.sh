@@ -6,14 +6,22 @@ function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 
 function setupPrompt {
   local COLOR="xx"
 
-  if [ "green" == "${1}" ]; then
-    COLOR="32"
-  elif [ "teal" == "${1}" ]; then
-    COLOR="36"
+  if [ "grey" == "${1}" ]; then
+    COLOR="30"
   elif [ "red" == "${1}" ]; then
     COLOR="31"
+  elif [ "green" == "${1}" ]; then
+    COLOR="32"
+  elif [ "yellow" == "${1}" ]; then
+    COLOR="33"
   elif [ "blue" == "${1}" ]; then
     COLOR="34"
+  elif [ "purple" == "${1}" ]; then
+    COLOR="35"
+  elif [ "teal" == "${1}" ]; then
+    COLOR="36"
+  elif [ "white" == "${1}" ]; then
+    COLOR="37"
   else
     abort "Color not recognized '${1}'."
   fi
