@@ -1,8 +1,31 @@
 function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; return 1;}
+function information { echo 1>&2 "${SCRIPT}:" "${@}"; }
+function warning { echo 1>&2 "${SCRIPT}:!WARNING:" "${@}"; }
 function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
 function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
 function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
 function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
+function weeklyGitPull {
+  local REPO="${1}"
+  local GIT_FETCH_HEAD="${REPO}/.git/FETCH_HEAD"
+
+  if [ -n "${WEEKLY_GIT_PULL_OFF}" ]; then
+    information "Weekly git pull turned off for '${REPO}'."
+  else
+    if [ ! -d "${REPO}" ]; then
+      abort "Not a valid directory '${REPO}'."
+    else
+      if [ ! -f "${GIT_FETCH_HEAD}" ]; then
+        abort "Not a valid git location '${GIT_FETCH_HEAD}'."
+      else
+        if [ -n "$(find "${GIT_FETCH_HEAD}" -mtime +7)" ]; then
+          information "Updating '${REPO}'."
+          cd ${REPO} && git pull -q
+        fi
+      fi
+    fi
+  fi
+}
 function setupPrompt {
   local COLOR="xx"
 
@@ -76,6 +99,17 @@ function addToPathFromList() {
   done
 }
 function backupFromList() {
+  local DIR=""
+
+  if [[ "-d" == "${1}" ]]; then
+    DIR="${HOME}/bash.backup/"
+
+    if [ ! -d "${DIR}" ]; then
+      logCmnd mkdir "${DIR}"
+    fi
+    shift
+  fi
+
   while [ $# -gt 0 ]; do
     local FILE="${1}"
     local FULL_FILE="${FILE}"
@@ -86,11 +120,15 @@ function backupFromList() {
 
     local FULL_BACKUP="${FILE##\.}.backup"
 
-    if [ -s "${FULL_FILE}" ]; then
+    if [ -e "${FULL_FILE}" ]; then
       if [ -L "${FULL_FILE}" ]; then
         logCmnd rm "${FULL_FILE}"
       else
         logCmnd mv "${FULL_FILE}" "${FULL_BACKUP}"
+
+        if [ -n "${DIR}" ]; then
+          logCmnd mv "${FULL_BACKUP}" "${DIR}"
+        fi
       fi
     fi
     shift
