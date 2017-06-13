@@ -11,6 +11,8 @@ OUT=$TMP/cronic.out
 ERR=$TMP/cronic.err
 TRACE=$TMP/cronic.trace
 MSG=$TMP/cronic.msg
+FORCE=${CRONIC_FORCE:-}
+MAILRECIPIENT=${MAILTO:-}
 
 set +e
 "$@" >$OUT 2>$TRACE
@@ -24,8 +26,13 @@ else
   ERR=$TRACE
 fi
 
-if [ $RESULT -ne 0 -o -s "$ERR" ]; then
-  echo "Cronic detected failure or error output for the command:" >> "${MSG}"
+if [ $RESULT -ne 0 -o -s "$ERR" -o -n "${FORCE}" ]; then
+  if [ $RESULT -ne 0 -o -s "$ERR" ]; then
+    echo "Cronic detected failure or error output for the command:" >> "${MSG}"
+  else
+    echo "Cronic force for the command:" >> "${MSG}"
+  fi
+
   echo "$@" >> "${MSG}"
   echo "RESULT CODE: $RESULT" >> "${MSG}"
   echo "" >> "${MSG}"
@@ -40,7 +47,7 @@ if [ $RESULT -ne 0 -o -s "$ERR" ]; then
     cat "$TRACE" >> "${MSG}"
   fi
 
-  if [[ -n "$(command -v mail)" ]] && [[ -n "${MAILTO}" ]]; then
+  if [[ -n "$(command -v mail)" ]] && [[ -n "${MAILRECIPIENT}" ]]; then
     CMD_MSG="Undetectable Command"
     for POSSIBLE_CMD in $@; do
       if [ -n "$(command -v ${POSSIBLE_CMD})" ]; then
