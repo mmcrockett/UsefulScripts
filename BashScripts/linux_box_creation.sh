@@ -61,21 +61,17 @@ function backupSetup {
     ".bash_logout"
   )
 
-  for FILE in "${SYSTEM_FILES[@]}"; do
-    local FULL_FILE="${HOME}/${FILE}"
-    local FULL_BACKUP="${HOME}/${FILE##\.}.backup"
-
-    if [ -s "${FULL_FILE}" ]; then
-      if [ -L "${FULL_FILE}" ]; then
-        logCmnd rm "${FULL_FILE}"
-      else
-        logCmnd mv "${FULL_FILE}" "${FULL_BACKUP}"
-      fi
-    fi
-  done
+  backupFromList -d "${SYSTEM_FILES}"
 }
 
-backupSetup
 setupGit
+
+if [ -s "${USEFUL_SCRIPTS_MMCROCKETT_DIR}/LinuxSetup/bash.profile.sh" ]; then
+  source "${USEFUL_SCRIPTS_MMCROCKETT_DIR}/LinuxSetup/bash.profile.sh"
+else
+  abort "Need to run mmcrockett linux setup first!"
+fi
+
+backupSetup
 setupEnv
-installRvmAndRubies "ruby-2.2.5"
+#installRvmAndRubies "ruby-2.2.5"
