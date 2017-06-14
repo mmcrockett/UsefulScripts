@@ -7,7 +7,8 @@ function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory
 function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
 function weeklyGitPull {
   local REPO="${1}"
-  local GIT_FETCH_HEAD="${REPO}/.git/FETCH_HEAD"
+  local GIT_FOLDER="${REPO}/.git"
+  local GIT_FETCH_HEAD="${GIT_FOLDER}/FETCH_HEAD"
 
   if [ -n "${WEEKLY_GIT_PULL_OFF}" ]; then
     information "Weekly git pull turned off for '${REPO}'."
@@ -15,10 +16,10 @@ function weeklyGitPull {
     if [ ! -d "${REPO}" ]; then
       abort "Not a valid directory '${REPO}'."
     else
-      if [ ! -f "${GIT_FETCH_HEAD}" ]; then
-        abort "Not a valid git location '${GIT_FETCH_HEAD}'."
+      if [ ! -d "${GIT_FOLDER}" ]; then
+        abort "Not a valid git location '${GIT_FOLDER}'."
       else
-        if [ -n "$(find "${GIT_FETCH_HEAD}" -mtime +7)" ]; then
+        if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7)" ]; then
           information "Updating '${REPO}'."
           cd ${REPO} && git pull -q
         fi
