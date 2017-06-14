@@ -11,8 +11,13 @@ OUT=$TMP/cronic.out
 ERR=$TMP/cronic.err
 TRACE=$TMP/cronic.trace
 MSG=$TMP/cronic.msg
-FORCE=${CRONIC_FORCE:-}
+FORCE=""
 MAILRECIPIENT=${MAILTO:-}
+
+if [ "-f" == "${1}" ]; then
+  FORCE=true
+  shift
+fi
 
 set +e
 "$@" >$OUT 2>$TRACE
