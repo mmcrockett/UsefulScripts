@@ -19,7 +19,7 @@ function weeklyGitPull {
       if [ ! -d "${GIT_FOLDER}" ]; then
         abort "Not a valid git location '${GIT_FOLDER}'."
       else
-        if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7)" ]; then
+        if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
           information "Updating '${REPO}'."
           cd ${REPO} && git pull -q
         fi
