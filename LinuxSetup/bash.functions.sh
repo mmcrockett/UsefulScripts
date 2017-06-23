@@ -1,11 +1,21 @@
-function abort { echo 1>&2 "${SCRIPT}:!ERROR:" "${@}"; return 1;}
-function information { echo 1>&2 "${SCRIPT}:" "${@}"; }
-function warning { echo 1>&2 "${SCRIPT}:!WARNING:" "${@}"; }
-function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
-function logCmnd { echo 1>&2 "${SCRIPT}:$(printf ' %q' "${@}")"; "${@}"; }
+function identifier {
+  local IDENTIFIER="sh"
+
+  if [ -n "${SCRIPT}" ]; then
+    IDENTIFIER="${SCRIPT}"
+  fi
+
+  echo "${IDENTIFIER}"
+}
+function abort { echo 1>&2 "$(identifier):!ERROR:" "${@}"; return 1;}
+function information { echo 1>&2 "$(identifier):" "${@}"; }
+function warning { echo 1>&2 "$(identifier):!WARNING:" "${@}"; }
+function logArgs { echo 1>&2 "$(identifier):" "${@}"; }
+function logCmnd { echo 1>&2 "$(identifier):$(printf ' %q' "${@}")"; "${@}"; }
 function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
 function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
 function weeklyGitPull {
+  local CUR_DIR="${PWD}"
   local REPO="${1}"
   local GIT_FOLDER="${REPO}/.git"
   local GIT_FETCH_HEAD="${GIT_FOLDER}/FETCH_HEAD"
@@ -21,7 +31,7 @@ function weeklyGitPull {
       else
         if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
           information "Updating '${REPO}'."
-          cd ${REPO} && git pull -q
+          cd ${REPO} && git pull -q && cd ${CUR_DIR}
         fi
       fi
     fi
@@ -180,9 +190,30 @@ function removeUnwantedCharacters() {
     abort "Need string to remove characters from."
   else
     local STRIPPED_STRING="$(echo "${1}" | sed -e 's/[ ]*//g')"
-    STRIPPED_STRING="$(echo "${STRIPPED_STRING}" | sed -e 's/[ .,''://&]/_/g')"
+    STRIPPED_STRING="$(echo "${STRIPPED_STRING}" | sed -e 's/[ ,''://&-]/_/g')"
     echo "${STRIPPED_STRING}"
   fi
+}
+
+function renameSafe() {
+  while [ $# -gt 0 ]; do
+    if [ -f "${1}" ]; then
+      local FILENAME="${1##*/}"
+      local DIRECTORY="${1%/*}"
+      local EXTENSION="${FILENAME##*.}"
+      local NEWFILE="$(removeUnwantedCharacters "${FILENAME%.*}").${EXTENSION}"
+
+      if [ ! -d "${DIRECTORY}" ]; then
+        DIRECTORY="."
+      fi
+
+      logCmnd mv "${1}" "${DIRECTORY}/${NEWFILE}"
+    else
+      warning "Not a file '${1}'."
+    fi
+
+    shift
+  done
 }
 
 function trim() {
