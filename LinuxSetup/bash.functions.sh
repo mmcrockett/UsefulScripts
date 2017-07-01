@@ -31,7 +31,8 @@ function weeklyGitPull {
       else
         if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
           information "Updating '${REPO}'."
-          cd ${REPO} && git pull -q && cd ${CUR_DIR}
+          cd ${REPO} && git pull -q
+          cd ${CUR_DIR}
         fi
       fi
     fi
