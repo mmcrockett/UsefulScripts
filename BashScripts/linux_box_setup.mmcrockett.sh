@@ -61,7 +61,7 @@ function backupSetup {
     ".bash_logout"
   )
 
-  backupFromList -d "${SYSTEM_FILES}"
+  backupFromList -d "${SYSTEM_FILES[@]}"
 }
 
 setupGit
