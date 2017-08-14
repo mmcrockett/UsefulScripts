@@ -14,6 +14,11 @@ MSG=$TMP/cronic.msg
 FORCE=""
 MAILRECIPIENT=${MAILTO:-}
 
+if [ ! $# -gt 0 ]; then
+  echo "No command to run!"
+  exit 1
+fi
+
 if [ "-f" == "${1}" ]; then
   FORCE=true
   shift
