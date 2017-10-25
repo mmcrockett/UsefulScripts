@@ -62,6 +62,7 @@ if [ $RESULT -ne 0 -o -s "$ERR" -o -n "${FORCE}" ]; then
     for POSSIBLE_CMD in $@; do
       if [ -n "$(command -v ${POSSIBLE_CMD})" ]; then
         CMD_MSG="${POSSIBLE_CMD}"
+        break
       fi
     done
 
