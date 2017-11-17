@@ -25,9 +25,9 @@ end
 
 class LonestarParser
   FILENAME    = "CharlotteSoccerSchedule.ics"
+  TEAMNAME    = "Netherlands"
 
-  # Download from Google Docs as zipped html.
-  # Unzip and then run on html files.
+  # Download html.
   def initialize(params = {})
     directory = params[:directory]
     @files    = []
@@ -48,17 +48,19 @@ class LonestarParser
     @games = []
 
     @files.each do |f|
-      game_dates = []
-
       page = Nokogiri::HTML(File.open(f).read())
-      page.css('tbody')[0].css('tr').each do |tr|
-        if (true == game_dates.empty?)
+      page.css('tbody').each do |tbody|
+        current_date = nil
+
+        tbody.css('tr').each do |tr|
           if ((true == tr.text.downcase.include?("saturday")) || (true == tr.text.downcase.include?("sunday")))
-            game_dates = process_date_cell(tr)
+            current_date = process_date_cell(tr)
           end
-        else
-          if (true == LonestarParser.italy_girls?(tr))
-            @games << process_game(tr, game_dates)
+
+          if (false == current_date.nil?)
+            if (true == LonestarParser.charlotte_team?(tr))
+              @games << process_game(tr, current_date)
+            end
           end
         end
       end
@@ -75,12 +77,12 @@ class LonestarParser
     ical = Icalendar::Calendar.new
 
     @games.each do |game|
+      puts "Game on #{game.date.to_date} @ #{game.time.hour}:#{game.time.minute}."
       event = ical.event
       event.summary = game.description
       event.start   = DateTime.create(game.date, game.time.hour, game.time.minute)
       event.end     = DateTime.create(game.date, game.time.hour + 2, game.time.minute)
       event.location = game.location
-      #event.uid     = "z"
     end
 
     if (nil != filename)
@@ -94,23 +96,27 @@ class LonestarParser
 
   private
   def process_date_cell(tr)
-    game_dates = []
+    game_date = nil
 
     tr.css('td').each_with_index do |td, i|
       if (false == td.text.strip.empty?)
         begin
           d = DateTime.parse(td.text)
 
-          game_dates << d
+          if (true == game_date.nil?)
+            game_date = d
+          else
+            raise "Not expected format, two game dates found '#{d}' and '#{game_date}."
+          end
         rescue
         end
       end
     end
 
-    return game_dates
+    return game_date
   end
 
-  def process_game(tr, game_dates)
+  def process_game(tr, game_date)
     game   = LonestarGame.new
     time_index        = -1
     tds               = tr.css('td')
@@ -124,28 +130,25 @@ class LonestarParser
         time_index = 0
       end
 
-      if (true == LonestarParser.italy_girls?(td))
+      if (true == LonestarParser.charlotte_team?(td))
         break
       end
     end
 
     game.time = DateTime.parse(tds[time_index].text.strip)
 
-    if (1 == time_index)
-      game.date = game_dates.first
-    else
-      game.date = game_dates.last
-    end
+    game.date        = game_date
     game.description = "#{tds[time_index + 1].text.strip} vs #{tds[time_index + 2].text.strip}"
     game.location    = tds[time_index + 3].text.strip
 
     return game
   end
 
-  def self.italy_girls?(html_node)
-    return ((true == html_node.text.downcase.include?("italy")) && (true == html_node.text.downcase.include?("girls")))
+  def self.charlotte_team?(html_node)
+    return ((true == html_node.text.downcase.include?(TEAMNAME.downcase)) && (true == html_node.text.downcase.include?("girls")))
   end
 end
 
 file = File.join('', 'Users', 'mcrockett', 'Desktop', LonestarParser::FILENAME)
-LonestarParser.new({:directory => File.join('', 'Users', 'mcrockett', 'Desktop', 'LonestarSoccerSchedule')}).process.to_ical(file)
+LonestarParser.new(:directory => File.join('', 'Users', 'mcrockett', 'Desktop', 'LonestarSoccerSchedule')).process.to_ical(file)
+puts "Created '#{file}'."
