@@ -460,3 +460,6 @@ function find-grep() {
     logCmnd find ${_DIRECTORY} "${cond[@]}" -exec grep -${_GREPARGS} "${_GREP}" {} \;
   fi
 }
+function git-smash {
+  logCmnd git rebase -i HEAD~${1:-2}
+}
