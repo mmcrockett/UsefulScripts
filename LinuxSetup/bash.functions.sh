@@ -366,6 +366,10 @@ function rename_mp3_to_mike_format() {
     local NEW_FILE=""
     local ANSWER=""
 
+    if [ ! -d "${DIRECTORY}" ]; then
+      DIRECTORY="${PWD}"
+    fi
+
     if [ -z "${TRACK_TITLE}" ]; then
       TRACK_TITLE="$(trim ${FILENAME_BASE##*-})"
     fi
@@ -391,7 +395,7 @@ function rename_mp3_to_mike_format() {
     NEW_FILE="${DIRECTORY}/$(removeUnwantedCharacters "${ARTIST}")_$(removeUnwantedCharacters "${TRACK_TITLE}").mp3"
 
     logCmnd mv "${FULLPATH}" "${NEW_FILE}"
-    logCmnd mp3info -a "${ARTIST}" -c "" -t "${TRACK_TITLE}" "${NEW_FILE}"
+    logCmnd mp3info -n "" -l "" -y "" -a "${ARTIST}" -c "" -t "${TRACK_TITLE}" "${NEW_FILE}"
   done
 }
 
