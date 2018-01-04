@@ -7,7 +7,8 @@ function identifier {
 
   echo "${IDENTIFIER}"
 }
-function abort { echo 1>&2 "$(identifier):!ERROR:" "${@}"; exit 1;}
+# git-resync doesn't work for exit
+function abort { echo 1>&2 "$(identifier):!ERROR:" "${@}"; return 1;}
 function information { if [ -t 1 ]; then echo 1>&2 "$(identifier):" "${@}"; fi; }
 function warning { echo 1>&2 "$(identifier):!WARNING:" "${@}"; }
 function logArgs { echo 1>&2 "$(identifier):" "${@}"; }
