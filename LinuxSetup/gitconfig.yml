@@ -9,5 +9,5 @@
   safecrlf = warn
   whitespace = tab-in-indent
 [alias]
-  hist    = log --graph --pretty=format:'%C(Yellow)%h%Creset %s %C(Cyan)%an%Creset %C(green)%ar'
-  hist-20 = log --graph --pretty=format:'%C(Yellow)%h%Creset %s %C(Cyan)%an%Creset %C(green)%ar' -n 20
+  hist     = log --graph --pretty=format:'%C(auto)%h %s %C(Cyan)%an %C(green)%ar %C(auto)%d' -n 20
+  hist-all = log --graph --pretty=format:'%C(auto)%h %s %C(Cyan)%an %C(green)%ar %C(auto)%d'
