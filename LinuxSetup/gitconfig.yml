@@ -8,3 +8,6 @@
   autocrlf = input
   safecrlf = warn
   whitespace = tab-in-indent
+[alias]
+  hist    = log --graph --pretty=format:'%C(Yellow)%h%Creset %s %C(Cyan)%an%Creset %C(green)%ar'
+  hist-20 = log --graph --pretty=format:'%C(Yellow)%h%Creset %s %C(Cyan)%an%Creset %C(green)%ar' -n 20
