@@ -322,6 +322,20 @@ function processPodcasts() {
   fi
 }
 
+function git-handle-pr-merged {
+  local SCRIPT="${FUNCNAME[0]}"
+  local BRANCH="master"
+  local IS_BRANCH="no"
+
+  if [ -n "${1}" ]; then
+    BRANCH="${1}"
+  fi
+
+  logCmnd git checkout ${BRANCH} || return $?
+  logCmnd git-resync-main-repo ${BRANCH} || return $?
+  logCmnd git-rm-merged-local-branches || return $?
+}
+
 function git-resync-main-repo {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="master"

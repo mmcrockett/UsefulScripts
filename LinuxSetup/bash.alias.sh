@@ -9,4 +9,3 @@ alias git-rm-merged-local-branches='git branch --merged | grep "^\s*[_]" | xargs
 alias move-podcasts='rsync -avz --remove-source-files hyperlvs71.qa.paypal.com:~/Downloads/*.mp3 ~/Downloads/'
 alias rake-no-error-out='rake 2> /dev/null'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
-alias git-handle-pr-merged="git checkout master && git-resync-main-repo && git-rm-merged-local-branches"
