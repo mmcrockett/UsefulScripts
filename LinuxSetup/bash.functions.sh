@@ -322,6 +322,10 @@ function processPodcasts() {
   fi
 }
 
+function git-rm-merged-local-branches {
+  git branch --merged | grep "^\s*[_]" | xargs -n 1 git branch -d
+}
+
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="master"
