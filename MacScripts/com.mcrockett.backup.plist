@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.mcrockett.backup</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-l</string>
+    <string>-c</string>
+    <string>'/Users/mcrockett/UsefulScripts.mmcrockett/MacScripts/backup.sh'</string>
+  </array>
+
+  <key>StartInterval</key>
+  <integer>87236</integer>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/mcrockett/launchctl.backupsh.err</string>
+
+  <key>StandardOutPath</key>
+  <string>/Users/mcrockett/launchctl.backupsh.out</string>
+</dict>
+</plist>

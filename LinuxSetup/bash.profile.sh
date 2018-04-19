@@ -1,4 +1,5 @@
 readonly LINUX_SETUP_DIR="${HOME}/UsefulScripts.mmcrockett/LinuxSetup"
+readonly MAC_SETUP_DIR="${HOME}/UsefulScripts.mmcrockett/MacScripts"
 
 [[ -s "${LINUX_SETUP_DIR}/bash.functions.sh" ]] && source "${LINUX_SETUP_DIR}/bash.functions.sh"
 
@@ -20,9 +21,18 @@ readonly _SOFT_LINK_LIST=(
   "${HOME}/.bash_profile:${HOME}/.bashrc"
 )
 
+readonly _SOFT_LINK_MAC_LIST=(
+  "${MAC_SETUP_DIR}/com.mcrockett.backup.plist:${HOME}/Library/LaunchAgents/com.mcrockett.backup.plist"
+  "${MAC_SETUP_DIR}/com.googlecode.iterm2.plist:${HOME}/Library/Preferences/com.googlecode.iterm2.plist"
+)
+
 sourceFromList "${_SOURCE_LIST[@]}"
 addToPathFromList "${_PATH_LIST[@]}"
 softLinkFromList "${_SOFT_LINK_LIST[@]}"
+
+if [ -n "$(isMac)" ]; then
+  softLinkFromList "${_SOFT_LINK_MAC_LIST[@]}"
+fi
 
 setupPrompt "green"
 

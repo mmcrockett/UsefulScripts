@@ -486,3 +486,12 @@ function find-grep() {
 function git-smash {
   logCmnd git rebase -i HEAD~${1:-2}
 }
+function isMac {
+  local _UNAME="$(uname -s)"
+
+  if [[ ${_UNAME} = *"Darwin"* ]]; then
+    echo "TRUE"
+  else
+    echo ""
+  fi
+}

@@ -25,7 +25,7 @@ end
 
 class LonestarParser
   FILENAME    = "CharlotteSoccerSchedule.ics"
-  TEAMNAME    = "Netherlands"
+  TEAMNAME    = "Poland"
 
   # Download html.
   def initialize(params = {})
