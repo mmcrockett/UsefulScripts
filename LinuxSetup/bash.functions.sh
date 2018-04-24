@@ -495,3 +495,12 @@ function isMac {
     echo ""
   fi
 }
+function afplaylist {
+  for SONG in "${@}"; do
+    if [ ! -f "${SONG}" ]; then
+      abort "Can't find ${SONG}."; return 1;
+    fi
+
+    afplay ${SONG}
+  done
+}
