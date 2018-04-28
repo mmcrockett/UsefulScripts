@@ -12,4 +12,4 @@ function failfile {
 
 find ${HOME}/DreamObjects -name "*.log" -mtime 10 -exec rm -rf {} \; || failfile "remove_gnucash_logs"
 s3cmd sync --exclude "*.log" --rexclude "^\." --rexclude "\/\." ${HOME}/DreamObjects/ s3://b137124-20150708-backups/ || failfile "dreamobjects_sync"
-rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" --delete "${RSYNC_SRC}" washingrving@mmcrockett.com:${RSYNC_DEST} || failfile "rysnc_firefox"
+rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_SRC}" washingrving@mmcrockett.com:${RSYNC_DEST} || failfile "rsync_firefox"
