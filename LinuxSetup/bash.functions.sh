@@ -496,11 +496,23 @@ function isMac {
   fi
 }
 function afplaylist {
+  local DEFAULT_SONGS_DIR="/Users/mcrockett/DreamObjects/Music/"
+  local SONGS=()
+
   for SONG in "${@}"; do
     if [ ! -f "${SONG}" ]; then
-      abort "Can't find ${SONG}."; return 1;
-    fi
+      FIND_SONGS="$(find ${DEFAULT_SONGS_DIR} -type f -iname "*${SONG}*.mp3")"
 
+      for FIND_SONG in "${FIND_SONGS}"; do
+        SONGS+=(${FIND_SONG})
+      done
+      #abort "Can't find ${SONG}."; return 1;
+    else
+      SONGS+=(${SONG})
+    fi
+  done
+
+  for SONG in "${SONGS[@]}"; do
     afplay ${SONG}
   done
 }
