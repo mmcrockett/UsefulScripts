@@ -497,22 +497,29 @@ function isMac {
 }
 function afplaylist {
   local DEFAULT_SONGS_DIR="/Users/mcrockett/DreamObjects/Music/"
-  local SONGS=()
+
+  if [ -z "${_AFPLAYLIST_SONGS_}" ]; then
+    export _AFPLAYLIST_SONGS_=()
+  fi
 
   for SONG in "${@}"; do
     if [ ! -f "${SONG}" ]; then
       FIND_SONGS="$(find ${DEFAULT_SONGS_DIR} -type f -iname "*${SONG}*.mp3")"
 
       for FIND_SONG in "${FIND_SONGS}"; do
-        SONGS+=(${FIND_SONG})
+        echo "Adding '${FIND_SONGS}'."
+        _AFPLAYLIST_SONGS_+=(${FIND_SONG})
       done
-      #abort "Can't find ${SONG}."; return 1;
     else
-      SONGS+=(${SONG})
+      _AFPLAYLIST_SONGS_+=(${SONG})
     fi
   done
 
-  for SONG in "${SONGS[@]}"; do
-    afplay ${SONG}
-  done
+  export _CURRENT_SONG_="${_AFPLAYLIST_SONGS_[0]}"
+
+  if [ -n "${_CURRENT_SONG_}" ]; then
+    _AFPLAYLIST_SONGS_=("${_AFPLAYLIST_SONGS_[@]:1}")
+
+    (afplay ${_CURRENT_SONG_} && afplaylist)
+  fi
 }
