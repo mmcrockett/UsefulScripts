@@ -15,6 +15,7 @@ readonly _PATH_LIST=(
 
 readonly _SOFT_LINK_LIST=(
   "${LINUX_SETUP_DIR}/vimrc.sh:${HOME}/.vimrc"
+  "${LINUX_SETUP_DIR}/gvimrc.sh:${HOME}/.gvimrc"
   "${LINUX_SETUP_DIR}/gitconfig.yml:${HOME}/.gitconfig"
   "${LINUX_SETUP_DIR}/gitignore_global.sh:${HOME}/.gitignore"
   "${LINUX_SETUP_DIR}/gemrc.yml:${HOME}/.gemrc"
@@ -23,7 +24,11 @@ readonly _SOFT_LINK_LIST=(
 
 readonly _SOFT_LINK_MAC_LIST=(
   "${MAC_SETUP_DIR}/com.mcrockett.backup.plist:${HOME}/Library/LaunchAgents/com.mcrockett.backup.plist"
+)
+
+readonly _REPLACE_MAC_LIST=(
   "${MAC_SETUP_DIR}/com.googlecode.iterm2.plist:${HOME}/Library/Preferences/com.googlecode.iterm2.plist"
+  "${MAC_SETUP_DIR}/org.vim.MacVim.plist:${HOME}/Library/Preferences/org.vim.MacVim.plist"
 )
 
 sourceFromList "${_SOURCE_LIST[@]}"
@@ -32,6 +37,7 @@ softLinkFromList "${_SOFT_LINK_LIST[@]}"
 
 if [ -n "$(isMac)" ]; then
   softLinkFromList "${_SOFT_LINK_MAC_LIST[@]}"
+  #backupFromList -d "${_REPLACE_MAC_LIST[@]}"
 fi
 
 setupPrompt "green"

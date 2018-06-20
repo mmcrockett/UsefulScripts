@@ -58,6 +58,7 @@ function backupSetup {
     ".gitconfig"
     ".alias"
     ".vimrc"
+    ".gvimrc"
     ".bash_logout"
   )
 
