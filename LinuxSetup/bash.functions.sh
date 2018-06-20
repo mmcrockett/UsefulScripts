@@ -91,6 +91,46 @@ function installRvmAndRubies() {
 
   logCmnd gem install bundler
 }
+function installBrewList() {
+  local _CASK_LIST=(
+    gimp
+    gnucash
+    macvim
+    firefox
+    thunderbird
+  )
+  local _LIST=(
+    coreutils
+    gpg
+    s3cmd
+  )
+
+  command -v brew >/dev/null 2>&1
+
+  if [ "0" -eq "$?" ]; then
+    for CASK_ITEM in "${_CASK_LIST[@]}"; do
+      brew cask list ${CASK_ITEM} >/dev/null 2>&1
+
+      if [ "1" -eq "$?" ]; then
+        logCmnd brew cask install ${CASK_ITEM} || return $?
+      else
+        information "${CASK_ITEM} already installed."
+      fi
+    done
+
+    for ITEM in "${_LIST[@]}"; do
+      brew list ${ITEM} >/dev/null 2>&1
+
+      if [ "1" -eq "$?" ]; then
+        logCmnd brew install ${ITEM} || return $?
+      else
+        information "${ITEM} already installed."
+      fi
+    done
+  else
+    abort "brew command not installed"
+  fi
+}
 function packagesFromList() {
   while [ $# -gt 0 ]; do
     sudo apt-get -yqq install "${1}"

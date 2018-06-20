@@ -16,6 +16,7 @@ readonly _PATH_LIST=(
 readonly _SOFT_LINK_LIST=(
   "${LINUX_SETUP_DIR}/vimrc.sh:${HOME}/.vimrc"
   "${LINUX_SETUP_DIR}/gvimrc.sh:${HOME}/.gvimrc"
+  "${LINUX_SETUP_DIR}/s3cfg.ini:${HOME}/.s3cfg"
   "${LINUX_SETUP_DIR}/gitconfig.yml:${HOME}/.gitconfig"
   "${LINUX_SETUP_DIR}/gitignore_global.sh:${HOME}/.gitignore"
   "${LINUX_SETUP_DIR}/gemrc.yml:${HOME}/.gemrc"
