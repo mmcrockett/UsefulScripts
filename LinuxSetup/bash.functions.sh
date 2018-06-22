@@ -98,6 +98,9 @@ function installBrewList() {
     macvim
     firefox
     thunderbird
+    google-chrome
+    vox
+    mark-text
   )
   local _LIST=(
     coreutils
@@ -535,8 +538,11 @@ function isMac {
     echo ""
   fi
 }
+if [ -n "$(isMac)" ]; then
 function afplaylist {
   local DEFAULT_SONGS_DIR="/Users/mcrockett/DreamObjects/Music/"
+
+  osascript -e "set Volume 0.001"
 
   if [ -z "${_AFPLAYLIST_SONGS_}" ]; then
     export _AFPLAYLIST_SONGS_=()
@@ -563,3 +569,4 @@ function afplaylist {
     (afplay ${_CURRENT_SONG_} && afplaylist)
   fi
 }
+fi
