@@ -566,7 +566,7 @@ function afplaylist {
   if [ -n "${_CURRENT_SONG_}" ]; then
     _AFPLAYLIST_SONGS_=("${_AFPLAYLIST_SONGS_[@]:1}")
 
-    (afplay ${_CURRENT_SONG_} && afplaylist)
+    (afplay -q 1 ${_CURRENT_SONG_} && afplaylist)
   fi
 }
 fi
