@@ -460,7 +460,6 @@ function rename_mp3_to_mike_format() {
     logCmnd mp3info -n "" -l "" -y "" -a "${ARTIST}" -c "" -t "${TRACK_TITLE}" "${NEW_FILE}"
   done
 }
-
 function find-grep() {
   local SCRIPT="${FUNCNAME[0]}"
   local _GREP=""
@@ -538,35 +537,98 @@ function isMac {
     echo ""
   fi
 }
-if [ -n "$(isMac)" ]; then
-function afplaylist {
-  local DEFAULT_SONGS_DIR="/Users/mcrockett/DreamObjects/Music/"
+function mikeplayer() {
+  local SCRIPT="${FUNCNAME[0]}"
+  local _APPEND=""
+  local _PLAYLIST=()
+  local _PLAYLIST_FILE="${HOME}/.mikeplayer"
+  local _DIRECTORY="/Users/mcrockett/DreamObjects/Music/"
+  local _VOLUME="0.001"
+  local _USAGE_MSG=' [-n -v -d <music directory> <songs>]
+    Simple command line song player.
 
-  osascript -e "set Volume 0.001"
+    Searches for music by name and adds to playlist, uses sox play to play songs.
+    If the song is a file it is added to playlist, if not a file then we search for matching songnames and add all of them.
 
-  if [ -z "${_AFPLAYLIST_SONGS_}" ]; then
-    export _AFPLAYLIST_SONGS_=()
-  fi
+    -n Creates a new playlist (default is append to current playlist)
+    -d <directory> Directory to search for music in.
+    -v <volume> Volume level on Mac, default is 0.001
+       <songs> List of files or songnames to search for, if empty defaults to previous playlist.'
 
-  for SONG in "${@}"; do
-    if [ ! -f "${SONG}" ]; then
-      FIND_SONGS="$(find ${DEFAULT_SONGS_DIR} -type f -iname "*${SONG}*.mp3")"
+  command -v play >/dev/null 2>&1
 
-      for FIND_SONG in "${FIND_SONGS}"; do
-        echo "Adding '${FIND_SONGS}'."
-        _AFPLAYLIST_SONGS_+=(${FIND_SONG})
+  if [ "0" -eq "$?" ]; then
+    for (( OPTIND=0; OPTIND <= ${#@}; ++i )); do
+      while getopts "nv:d:" option; do
+        case "${option}" in
+          n)
+            rm $_PLAYLIST_FILE
+            ;;
+          d)
+            _DIRECTORY="${OPTARG}"
+            ;;
+          v)
+            _VOLUME="${OPTARG}"
+            ;;
+          *)
+            abort "Invalid option '${OPTARG}'."
+            usage "${_USAGE_MSG}"
+            _USAGE_MSG=""
+            ;;
+        esac
       done
-    else
-      _AFPLAYLIST_SONGS_+=(${SONG})
+
+      OPTIND=$((OPTIND+1))
+    done
+
+    if [ ! -d "${_DIRECTORY}" ]; then
+      abort "Directory not valid. '${_DIRECTORY}'."
+      usage "${_USAGE_MSG}"
+      _USAGE_MSG=""
     fi
-  done
 
-  export _CURRENT_SONG_="${_AFPLAYLIST_SONGS_[0]}"
+    if [ -n "${_USAGE_MSG}" ]; then
+      if [ -n "$(isMac)" ]; then
+        osascript -e "set Volume ${_VOLUME}"
+      fi
 
-  if [ -n "${_CURRENT_SONG_}" ]; then
-    _AFPLAYLIST_SONGS_=("${_AFPLAYLIST_SONGS_[@]:1}")
+      if [ -f $_PLAYLIST_FILE ]; then
+        while read SONG; do
+          if [ -f "${SONG}" ]; then
+            echo "Loading '${SONG}'."
+            _PLAYLIST+=(${SONG})
+          else
+            echo "Invalid song in playlist '${SONG}'."
+          fi
+        done <"${_PLAYLIST_FILE}"
+      fi
 
-    (afplay -q 1 ${_CURRENT_SONG_} && afplaylist)
+      for SONG in "${@}"; do
+        if [ ! -f "${SONG}" ]; then
+          FIND_SONGS="$(find ${_DIRECTORY} -type f -iname "*${SONG}*.mp3")"
+
+          for FIND_SONG in "${FIND_SONGS}"; do
+            if [ -f "${FIND_SONG}" ]; then
+              echo "Found '${FIND_SONG}'."
+              _PLAYLIST+=(${FIND_SONG})
+            fi
+          done
+        else
+          echo "Adding '${SONG}'."
+          _PLAYLIST+=(${SONG})
+        fi
+
+        for SONG in "${_PLAYLIST[@]}"; do
+          printf "%s\n" "${_PLAYLIST[@]}" > "${_PLAYLIST_FILE}"
+        done
+      done
+
+      for SONG in "${_PLAYLIST[@]}"; do
+        printf "playing: "
+        (play "${SONG}" 2>&1 && clear)
+      done
+    fi
+  else
+    abort "play command not installed, install sox"
   fi
 }
-fi
