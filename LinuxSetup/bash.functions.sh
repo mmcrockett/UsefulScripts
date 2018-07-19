@@ -539,8 +539,7 @@ function isMac {
 }
 function mikeplayer() {
   local SCRIPT="${FUNCNAME[0]}"
-  local _APPEND=""
-  local _PLAYLIST=()
+  export _PLAYLIST_=()
   local _PLAYLIST_FILE="${HOME}/.mikeplayer"
   local _DIRECTORY="/Users/mcrockett/DreamObjects/Music/"
   local _VOLUME="0.001"
@@ -550,7 +549,7 @@ function mikeplayer() {
     Searches for music by name and adds to playlist, uses sox play to play songs.
     If the song is a file it is added to playlist, if not a file then we search for matching songnames and add all of them.
 
-    -n Creates a new playlist (default is append to current playlist)
+    -n Creates a new playlist (default is prepend to current playlist)
     -d <directory> Directory to search for music in.
     -v <volume> Volume level on Mac, default is 0.001
        <songs> List of files or songnames to search for, if empty defaults to previous playlist.'
@@ -592,17 +591,6 @@ function mikeplayer() {
         osascript -e "set Volume ${_VOLUME}"
       fi
 
-      if [ -f $_PLAYLIST_FILE ]; then
-        while read SONG; do
-          if [ -f "${SONG}" ]; then
-            echo "Loading '${SONG}'."
-            _PLAYLIST+=(${SONG})
-          else
-            echo "Invalid song in playlist '${SONG}'."
-          fi
-        done <"${_PLAYLIST_FILE}"
-      fi
-
       for SONG in "${@}"; do
         if [ ! -f "${SONG}" ]; then
           FIND_SONGS="$(find ${_DIRECTORY} -type f -iname "*${SONG}*.mp3")"
@@ -610,25 +598,43 @@ function mikeplayer() {
           for FIND_SONG in "${FIND_SONGS}"; do
             if [ -f "${FIND_SONG}" ]; then
               echo "Found '${FIND_SONG}'."
-              _PLAYLIST+=(${FIND_SONG})
+              _PLAYLIST_+=(${FIND_SONG})
             fi
           done
         else
           echo "Adding '${SONG}'."
-          _PLAYLIST+=(${SONG})
+          _PLAYLIST_+=(${SONG})
         fi
-
-        for SONG in "${_PLAYLIST[@]}"; do
-          printf "%s\n" "${_PLAYLIST[@]}" > "${_PLAYLIST_FILE}"
-        done
       done
 
-      for SONG in "${_PLAYLIST[@]}"; do
-        printf "playing: "
-        (play "${SONG}" 2>&1 && clear)
+      if [ -f $_PLAYLIST_FILE ]; then
+        while read SONG; do
+          if [ -f "${SONG}" ]; then
+            echo "Loading '${SONG}'."
+            _PLAYLIST_+=(${SONG})
+          else
+            echo "Invalid song in playlist '${SONG}'."
+          fi
+        done <"${_PLAYLIST_FILE}"
+      fi
+
+      for SONG in "${_PLAYLIST_[@]}"; do
+        printf "%s\n" "${_PLAYLIST_[@]}" > "${_PLAYLIST_FILE}"
       done
+
+      _mikeplay
     fi
   else
     abort "play command not installed, install sox"
+  fi
+}
+function _mikeplay {
+  export _CURRENT_SONG_="${_PLAYLIST_[0]}"
+
+  if [ -n "${_CURRENT_SONG_}" ]; then
+    _PLAYLIST_=("${_PLAYLIST_[@]:1}")
+
+    printf "playing: "
+    (play "${_CURRENT_SONG_}" && clear && _mikeplay)
   fi
 }
