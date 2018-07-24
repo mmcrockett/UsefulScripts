@@ -622,6 +622,9 @@ function mikeplayer() {
         printf "%s\n" "${_PLAYLIST_[@]}" > "${_PLAYLIST_FILE}"
       done
 
+      export _PLAYLIST_SIZE_="${#_PLAYLIST_[@]}"
+      export _SONG_INDEX_=0
+
       _mikeplay
     fi
   else
@@ -630,11 +633,12 @@ function mikeplayer() {
 }
 function _mikeplay {
   export _CURRENT_SONG_="${_PLAYLIST_[0]}"
+  ((_SONG_INDEX_++))
 
   if [ -n "${_CURRENT_SONG_}" ]; then
     _PLAYLIST_=("${_PLAYLIST_[@]:1}")
 
-    printf "playing: "
+    printf "Playing (${_SONG_INDEX_} / ${_PLAYLIST_SIZE_}): "
     (play "${_CURRENT_SONG_}" && clear && _mikeplay)
   fi
 }
