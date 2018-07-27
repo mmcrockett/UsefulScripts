@@ -543,22 +543,24 @@ function mikeplayer() {
   local _PLAYLIST_FILE="${HOME}/.mikeplayer"
   local _DIRECTORY="/Users/mcrockett/DreamObjects/Music/"
   local _VOLUME="0.001"
-  local _USAGE_MSG=' [-n -v -d <music directory> <songs>]
+  local _SHUFFLE=""
+  local _USAGE_MSG=' [-n -s -v <level> -d <music directory> <songs>]
     Simple command line song player.
 
     Searches for music by name and adds to playlist, uses sox play to play songs.
     If the song is a file it is added to playlist, if not a file then we search for matching songnames and add all of them.
 
     -n Creates a new playlist (default is prepend to current playlist)
+    -s Shuffle on
     -d <directory> Directory to search for music in.
-    -v <volume> Volume level on Mac, default is 0.001
+    -v <level> Volume level on Mac, default is 0.001
        <songs> List of files or songnames to search for, if empty defaults to previous playlist.'
 
   command -v play >/dev/null 2>&1
 
   if [ "0" -eq "$?" ]; then
     for (( OPTIND=0; OPTIND <= ${#@}; ++i )); do
-      while getopts "nv:d:" option; do
+      while getopts "snv:d:" option; do
         case "${option}" in
           n)
             rm $_PLAYLIST_FILE
@@ -568,6 +570,9 @@ function mikeplayer() {
             ;;
           v)
             _VOLUME="${OPTARG}"
+            ;;
+          s)
+            _SHUFFLE="TRUE"
             ;;
           *)
             abort "Invalid option '${OPTARG}'."
@@ -607,20 +612,29 @@ function mikeplayer() {
         fi
       done
 
-      if [ -f $_PLAYLIST_FILE ]; then
-        while read SONG; do
-          if [ -f "${SONG}" ]; then
-            echo "Loading '${SONG}'."
-            _PLAYLIST_+=(${SONG})
-          else
-            echo "Invalid song in playlist '${SONG}'."
-          fi
-        done <"${_PLAYLIST_FILE}"
-      fi
+      _mikePlayListFromFile "APPEND"
 
       for SONG in "${_PLAYLIST_[@]}"; do
         printf "%s\n" "${_PLAYLIST_[@]}" > "${_PLAYLIST_FILE}"
       done
+
+      if [ -n "${_SHUFFLE}" ]; then
+        command -v shuf >/dev/null 2>&1
+
+        if [ "0" -eq "$?" ]; then
+          local _SHUF_FILE="${_PLAYLIST_FILE}.shuf"
+          shuf < "${_PLAYLIST_FILE}" > "${_SHUF_FILE}"
+
+          if [ "0" -eq "$?" ]; then
+            mv "${_SHUF_FILE}" "${_PLAYLIST_FILE}"
+            _mikePlayListFromFile
+          fi
+        else
+          info "Can't shuffle don't have the 'shuf' command installed."
+        fi
+      fi
+
+      printf "%s\n" "${_PLAYLIST_[@]}"
 
       export _PLAYLIST_SIZE_="${#_PLAYLIST_[@]}"
       export _SONG_INDEX_=0
@@ -629,6 +643,23 @@ function mikeplayer() {
     fi
   else
     abort "play command not installed, install sox"
+  fi
+}
+function _mikePlayListFromFile {
+  local _APPEND_="${1}"
+
+  if [ -z "${_APPEND_}" ]; then
+    _PLAYLIST_=()
+  fi
+
+  if [ -f $_PLAYLIST_FILE ]; then
+    while read SONG; do
+      if [ -f "${SONG}" ]; then
+        _PLAYLIST_+=(${SONG})
+      else
+        echo "Invalid song in playlist '${SONG}'."
+      fi
+    done <"${_PLAYLIST_FILE}"
   fi
 }
 function _mikeplay {
