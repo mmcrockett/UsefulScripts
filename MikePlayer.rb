@@ -7,10 +7,13 @@ require 'byebug'
 
 class MikePlayer
   DEFAULT_DIRECTORY  = File.join(Dir.home, 'Music')
-  DEFAULT_VOLUME     = "0.001"
+  DEFAULT_VOLUME     = 0.2
   SETTINGS_DIRECTORY = File.join(Dir.home, '.mikeplayer')
   PAUSE_INDICATOR    = " ||".freeze
   SLEEP_SETTING      = 0.5
+  STOPPED            = :stopped
+  PLAYING            = :playing
+  PAUSED             = :paused
 
   def initialize(options, *args)
     @pl_data   = {found_song_count: 0, loaded_song_count: 0, playlist_name: ''}
@@ -23,7 +26,7 @@ class MikePlayer
     @songs     = []
     @command   = ''
     @pid       = nil
-    @playing   = false
+    @state     = STOPPED
     @song_i    = 0
 
     check_system
@@ -51,23 +54,33 @@ class MikePlayer
     return self
   end
 
+  def playing?
+    return (PLAYING == @state)
+  end
+
+  def paused?
+    return (PAUSED == @state)
+  end
+
   def press_pause
-    if (true == @playing)
-      Process.kill("TSTP", @pid) if (false == @pid.nil?)
-      @playing = false
+    if (true == playing?)
+      kill("TSTP")
+      @state = PAUSED
+    elsif (true == paused?)
+      kill("CONT")
+      @state = PLAYING
     else
-      Process.kill("CONT", @pid) if (false == @pid.nil?)
-      @playing = true
+      print("Confused state #{@state}.")
     end
   end
 
   def stop_song
-    if (false == @playing)
-      Process.kill("CONT", @pid) if (false == @pid.nil?)
+    if (true == paused?)
+      kill("CONT")
     end
 
-    Process.kill("INT", @pid) if (false == @pid.nil?)
-    @playing = false
+    kill("INT")
+    @state = STOPPED
   end
 
   def next_song
@@ -86,16 +99,33 @@ class MikePlayer
     end
   end
 
+  def kill(signal)
+    if (false == @pid.nil?)
+      Process.kill(signal, @pid)
+    end
+  end
+
+  def display(info, filename)
+    artist = "#{info.tag.artist}"
+    title  = "#{info.tag.title}"
+
+    if (true == artist.empty?) && (true == title.empty?)
+      return File.basename(filename, '.mp3')
+    elsif (true == artist.empty?)
+      artist = "?????"
+    elsif (true == title.empty?)
+      title  = "?????"
+    end
+
+    return "#{artist} - #{title}"
+  end
+
   def play
     print "Playlist #{@pl_data[:playlist_name]} loaded #{@pl_data[:loaded_song_count]} songs, added #{@pl_data[:found_song_count]}\n"
     song_data = []
 
     if (true == @shuffle)
       @songs.shuffle!
-    end
-
-    if (true == mac?)
-      set_volume
     end
 
     @songs.each do |song|
@@ -113,6 +143,8 @@ class MikePlayer
           break
         end
       end
+
+      print "Time limit set to #{@minutes} minutes, only playing #{@songs.size} songs.\n"
     end
 
     thread = Thread.new do
@@ -124,20 +156,18 @@ class MikePlayer
         song_info = song_data[@song_i]
         play_ticks = 0
         song_i_str = "#{@song_i + 1}".rjust(song_count.size)
-        info_prefix = "\rPlaying (#{song_i_str}/#{song_count}): #{song_info.tag.artist} - #{song_info.tag.title}".freeze
-        stdin, stdother, thread_info = Open3.popen2e("play #{song}")
-        @playing = true
+        info_prefix = "\rPlaying (#{song_i_str}/#{song_count}): #{display(song_info, song)}".freeze
+        stdin, stdother, thread_info = Open3.popen2e("play --no-show-progress --volume #{@volume} #{song}")
+        @state   = PLAYING
         @pid     = thread_info.pid
         indicator = ''
 
         while (true == system("ps -p #{@pid} > /dev/null"))
-          info_changed = false
-
-          if (true == @playing)
+          if (true == playing?)
             indicator = "#{'>' * (play_ticks % 4)}"
             play_ticks += 1
             info_changed = true
-          elsif (PAUSE_INDICATOR != indicator)
+          elsif (true == paused?) && (PAUSE_INDICATOR != indicator)
             indicator = PAUSE_INDICATOR
             info_changed = true
           end
@@ -157,6 +187,12 @@ class MikePlayer
 
         stdin.close
         stdother.close
+
+        @pid = nil
+
+        if (true == playing?)
+          next_song
+        end
       end
 
       @pid   = nil
@@ -182,14 +218,6 @@ class MikePlayer
     puts ""
   end
 
-  def mac?
-    if (false == cmd_exist?('uname'))
-      return false
-    else
-      return `uname -s`.include?("Darwin")
-    end
-  end
-
   def cmd_exist?(cmd)
     if (true != system('command'))
       raise "Missing 'command' command, which is used to test compatibility."
@@ -210,14 +238,6 @@ class MikePlayer
     e_sec = "%02d" % (t % 60)
 
     return "#{e_min}:#{e_sec} [#{l_min}:#{l_sec}]"
-  end
-
-  def set_volume
-    if (false == cmd_exist?('osascript'))
-      puts "osascript not found, can't set volume, maybe Mac has changed?."
-    elsif (true != system("osascript -e \"set Volume #{@volume}\""))
-      puts "osascript failed to run, volume not set."
-    end
   end
 
   def determine_playlist(user_option)
@@ -246,9 +266,9 @@ class MikePlayer
       Dir.mkdir(SETTINGS_DIRECTORY)
     end
 
-    if (true == File.exist?(@playlist))
+    if (true == File.file?(@playlist))
       if (true == @replace)
-        File.rm(@playlist)
+        File.delete(@playlist)
       else
         @songs = JSON.parse(File.read(@playlist))
         @pl_data[:loaded_song_count] = @songs.size
@@ -270,12 +290,12 @@ end
 options = {}
 OptionParser.new do |opt|
   opt.banner = "Usage: MikePlayer.rb [options] <song name seach>"
-  opt.on('--shuffle', 'Shuffle playlist.') { |o| options[:shuffle] = true }
-  opt.on('--replace', 'Replace playlist.') { |o| options[:replace] = true }
-  opt.on('--volume', 'Changes default volume.') { |o| options[:volume] = o }
-  opt.on('--playlist name', 'Play playlist name.') { |o| options[:playlist] = o }
-  opt.on('--directory name', 'Directory to find mp3s.') { |o| options[:directory] = o }
-  opt.on('--playtime minutes', 'Limit time to number of minutes.') { |o| options[:minutes] = o }
+  opt.on('-s', '--shuffle', 'Shuffle playlist.') { |o| options[:shuffle] = true }
+  opt.on('-r', '--replace', 'Replace playlist.') { |o| options[:replace] = true }
+  opt.on('-v', '--volume', 'Changes default volume.') { |o| options[:volume] = o }
+  opt.on('-p', '--playlist name', 'Play playlist name.') { |o| options[:playlist] = o }
+  opt.on('-d', '--directory name', 'Directory to find mp3s.') { |o| options[:directory] = o }
+  opt.on('-t', '--time minutes', 'Limit time to number of minutes.') { |o| options[:minutes] = o }
 end.parse!
 
 mikeplayer = MikePlayer.new(options, ARGV)
