@@ -3,7 +3,6 @@ require 'json'
 require 'open3'
 require 'io/console'
 require 'mp3info'
-require 'byebug'
 
 class MikePlayer
   DEFAULT_DIRECTORY  = File.join(Dir.home, 'Music')
@@ -64,7 +63,7 @@ class MikePlayer
 
   def press_pause
     if (true == playing?)
-      kill("TSTP")
+      kill("STOP")
       @state = PAUSED
     elsif (true == paused?)
       kill("CONT")
