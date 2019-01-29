@@ -13,20 +13,23 @@ class MikePlayer
   STOPPED            = :stopped
   PLAYING            = :playing
   PAUSED             = :paused
+  PL_FILE_ENDING     = '.mpl'.freeze
 
   def initialize(options, *args)
     @pl_data   = {found_song_count: 0, loaded_song_count: 0, playlist_name: ''}
     @shuffle   = (options[:shuffle] == true)
-    @replace   = (options[:replace] == true)
+    @overwrite = (options[:overwrite] == true)
     @volume    = options[:volume] || DEFAULT_VOLUME
     @directory = options[:directory] || DEFAULT_DIRECTORY
     @minutes   = options[:minutes].to_i
+    @random    = options[:random].to_i
     @playlist  = determine_playlist(options[:playlist])
     @songs     = []
     @command   = ''
     @pid       = nil
     @state     = STOPPED
     @song_i    = 0
+    @start_time = nil
 
     check_system
     preprocess_playlist
@@ -38,6 +41,16 @@ class MikePlayer
         Dir.glob(File.join(@directory, "**", "*#{arg}*"), File::FNM_CASEFOLD).each do |f|
           self << f
         end
+      end
+    end
+
+    if (0 < @random)
+      files = Dir.glob(File.join(@directory, "**", "*.mp3"), File::FNM_CASEFOLD)
+
+      files.shuffle!
+
+      files.take(@random).each do |f|
+        self << f
       end
     end
 
@@ -79,7 +92,22 @@ class MikePlayer
     end
 
     kill("INT")
+
+    sleep 0.2
+
+    if (true == pid_alive?)
+      kill("KILL")
+    end
+
     @state = STOPPED
+  end
+
+  def pid_alive?(pid = @pid)
+    if (false == pid.nil?)
+      return system("ps -p #{pid} > /dev/null")
+    end
+
+    return false
   end
 
   def next_song
@@ -119,6 +147,16 @@ class MikePlayer
     return "#{artist} - #{title}"
   end
 
+  def pause_if_over_time_limit
+    if (false == @start_time.nil?) && (0 < @minutes) && (true == playing?)
+      if (0 > minutes_remaining)
+        press_pause
+        @start_time = nil
+        @minutes    = 0
+      end
+    end
+  end
+
   def play
     print "Playlist #{@pl_data[:playlist_name]} loaded #{@pl_data[:loaded_song_count]} songs, added #{@pl_data[:found_song_count]}\n"
     song_data = []
@@ -129,21 +167,6 @@ class MikePlayer
 
     @songs.each do |song|
       song_data << Mp3Info.new(song)
-    end
-
-    if (0 != @minutes)
-      time = 0
-
-      @songs.each_with_index do |song, i|
-        time += song_data[i].length.ceil
-
-        if (@minutes < (time/60).to_i)
-          @songs = @songs[0..i - 1]
-          break
-        end
-      end
-
-      print "Time limit set to #{@minutes} minutes, only playing #{@songs.size} songs.\n"
     end
 
     thread = Thread.new do
@@ -161,7 +184,9 @@ class MikePlayer
         @pid     = thread_info.pid
         indicator = ''
 
-        while (true == system("ps -p #{@pid} > /dev/null"))
+        while (true == pid_alive?)
+          pause_if_over_time_limit
+
           if (true == playing?)
             indicator = "#{'>' * (play_ticks % 4)}"
             play_ticks += 1
@@ -172,7 +197,13 @@ class MikePlayer
           end
 
           if (true == info_changed)
-            info  = "#{info_prefix} #{as_duration_str(song_info.length, (play_ticks * SLEEP_SETTING).to_i)} #{indicator} ".ljust(max_size)
+            mindicator = ""
+
+            if (0 < minutes_remaining)
+              mindicator = "(#{minutes_remaining}↓) "
+            end
+
+            info  = "#{info_prefix} #{as_duration_str(song_info.length, (play_ticks * SLEEP_SETTING).to_i)} #{mindicator}#{indicator}".ljust(max_size)
 
             max_size = info.size
 
@@ -211,6 +242,15 @@ class MikePlayer
       elsif ('q' == @command) && (false == @pid.nil?)
         stop_song
         thread.kill
+      elsif ('t' == @command)
+        @start_time = Time.now
+      elsif (false == @start_time.nil?) && ("#{@command.to_i}" == @command)
+        if (0 == @minutes)
+          @minutes = @command.to_i
+        else
+          @minutes *= 10
+          @minutes += @command.to_i
+        end
       end
     end
 
@@ -241,17 +281,18 @@ class MikePlayer
 
   def determine_playlist(user_option)
     if (false == user_option.nil?)
-      if (false == File.exist?(user_option))
-        @pl_data[:playlist_name] = user_option
-        return File.join(SETTINGS_DIRECTORY, "#{user_option}.mpl")
-      else
-        @pl_data[:playlist_name] = File.basename(user_option)
+      @pl_data[:playlist_name] = File.basename(user_option, PL_FILE_ENDING)
+
+      if (true == File.exist?(user_option))
         return user_option
       end
+    elsif (0 < @random)
+      @pl_data[:playlist_name] = "random_n#{@random}"
     else
       @pl_data[:playlist_name] = 'default'
-      return File.join(SETTINGS_DIRECTORY, 'default.mpl')
     end
+
+    return File.join(SETTINGS_DIRECTORY, "#{@pl_data[:playlist_name]}#{PL_FILE_ENDING}")
   end
 
   def write_playlist
@@ -266,7 +307,7 @@ class MikePlayer
     end
 
     if (true == File.file?(@playlist))
-      if (true == @replace)
+      if ((true == @overwrite) || (0 < @random))
         File.delete(@playlist)
       else
         @songs = JSON.parse(File.read(@playlist))
@@ -284,13 +325,22 @@ class MikePlayer
 
     return nil
   end
+
+  def minutes_remaining
+    if ((0 == @minutes) || (@start_time.nil?))
+      return -1
+    else
+      return (@minutes - ((Time.now - @start_time).to_i / 60).to_i)
+    end
+  end
 end
 
 options = {}
 OptionParser.new do |opt|
   opt.banner = "Usage: MikePlayer.rb [options] <song name seach>"
   opt.on('-s', '--shuffle', 'Shuffle playlist.') { |o| options[:shuffle] = true }
-  opt.on('-r', '--replace', 'Replace playlist.') { |o| options[:replace] = true }
+  opt.on('-r', '--random n', 'Create playlist with randomly picked n songs.') { |o| options[:random] = o.to_i }
+  opt.on('-o', '--overwrite', 'Overwrite playlist.') { |o| options[:overwrite] = true }
   opt.on('-v', '--volume', 'Changes default volume.') { |o| options[:volume] = o }
   opt.on('-p', '--playlist name', 'Play playlist name.') { |o| options[:playlist] = o }
   opt.on('-d', '--directory name', 'Directory to find mp3s.') { |o| options[:directory] = o }
