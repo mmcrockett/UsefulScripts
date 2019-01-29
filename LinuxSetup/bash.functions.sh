@@ -541,3 +541,11 @@ function mikeplayer() {
   local _DIRECTORY="/Users/mcrockett/DreamObjects/Music/"
   ruby "${HOME}/UsefulScripts.mmcrockett/MikePlayer.rb" --directory ${_DIRECTORY} ${@}
 }
+function installPathogen() {
+  local AUTOLOAD_PATH="${HOME}/.vim/autoload"
+  local PATHOGEN_FILE="${AUTOLOAD_PATH}/pathogen.vim"
+
+  if [ ! -s "${PATHOGEN_FILE}" ]; then
+    mkdir -p ${AUTOLOAD_PATH} ~/.vim/bundle && curl -LSso ${PATHOGEN_FILE} https://tpo.pe/pathogen.vim
+  fi
+}

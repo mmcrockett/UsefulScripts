@@ -52,6 +52,8 @@ complete -r scp 2>/dev/null
 #PERL_MB_OPT="--install_base \"/Users/mcrockett/perl5\""; export PERL_MB_OPT;
 #PERL_MM_OPT="INSTALL_BASE=/Users/mcrockett/perl5"; export PERL_MM_OPT;
 
+installPathogen
+
 export NVM_DIR="$HOME/.nvm"
 export EDITOR=vim
 
