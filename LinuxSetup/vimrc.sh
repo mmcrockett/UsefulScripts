@@ -75,4 +75,6 @@ set t_Co=256
 autocmd BufEnter *.html setlocal indentexpr=
 autocmd BufEnter *.css  setlocal indentexpr=
 
-execute pathogen#infect()
+if has("pathogen")
+  execute pathogen#infect()
+endif
