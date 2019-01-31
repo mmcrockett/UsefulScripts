@@ -6,7 +6,7 @@ require 'mp3info'
 
 class MikePlayer
   DEFAULT_DIRECTORY  = File.join(Dir.home, 'Music')
-  DEFAULT_VOLUME     = 0.2
+  DEFAULT_VOLUME     = 0.1
   SETTINGS_DIRECTORY = File.join(Dir.home, '.mikeplayer')
   PAUSE_INDICATOR    = " ||".freeze
   SLEEP_SETTING      = 0.5
