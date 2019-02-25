@@ -2,7 +2,7 @@
   name = Mike Crockett
   useConfigOnly = true
 [push]
-	default = current
+  default = current
 [core]
   excludesfile = ~/.gitignore
   autocrlf = input
