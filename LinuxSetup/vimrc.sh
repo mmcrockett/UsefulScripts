@@ -54,6 +54,7 @@ if has("autocmd")
 
   autocmd BufEnter *.html setlocal indentexpr=
   autocmd BufEnter *.css  setlocal indentexpr=
+  au BufNewFile,BufRead [Dd]ockerfile,Dockerfile* set filetype=dockerfile
 endif " has("autocmd")
 
 set nocindent

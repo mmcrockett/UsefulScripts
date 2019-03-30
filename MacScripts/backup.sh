@@ -1,5 +1,7 @@
 #!/bin/bash
 
+exit 0
+
 DESKTOP="${HOME}/Desktop"
 DATESTAMP="$(date "+%Y%m%d")"
 
@@ -11,6 +13,9 @@ RSYNC_FF_DEST="/home/washingrving/FirefoxProfile"
 
 RSYNC_TB_SRC="${HOME}/Library/Thunderbird/Profiles/ec3jwxfs.default"
 RSYNC_TB_DEST="/home/washingrving/ThunderbirdProfile"
+
+GNUCASH_LOCATION="${HOME}/DreamObjects/b137124-documents"
+GNUCASH_BACKUP_LOCATION="/tmp/MikeAccounts.${DATESTAMP}.gnucash"
 
 function failfile {
   local FILE="${DESKTOP}/${1}-${DATESTAMP}.launchctl.failed.txt"
@@ -33,8 +38,9 @@ function successfile {
   fi
 }
 
-find ${HOME}/DreamObjects -name "*.log" -mtime 10 -exec rm -rf {} \; || failfile "remove_gnucash_logs"
-s3cmd sync --exclude "*.log" --rexclude "^\." --rexclude "\/\." ${HOME}/DreamObjects/ s3://b137124-20150708-backups/ || failfile "dreamobjects_sync"
+find ${GNUCASH_LOCATION} -name "*.log" -mtime +10 -exec rm -rf {} \; || failfile "remove_gnucash_logs"
+cp ${GNUCASH_LOCATION} ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
+dhbackup || failfile "dreamobjects_sync"
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_FF_SRC}" washingrving@mmcrockett.com:${RSYNC_FF_DEST} || failfile "rsync_firefox"
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_TB_SRC}" washingrving@mmcrockett.com:${RSYNC_TB_DEST} || failfile "rsync_thunderbird"
 successfile
