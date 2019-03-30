@@ -366,20 +366,27 @@ function processPodcasts() {
 }
 
 function git-rm-merged-local-branches {
-  git branch --merged | grep "^\s*[_]" | xargs -n 1 git branch -d
+  git branch --merged | grep "^\s*[mcrockett]" | xargs -n 1 git branch -d
 }
 
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="master"
   local IS_BRANCH="no"
+  local IS_FORK="$(git config --get remote.origin.url | grep "mcrockett")"
 
   if [ -n "${1}" ]; then
     BRANCH="${1}"
   fi
 
   logCmnd git checkout ${BRANCH} || return $?
-  logCmnd git-resync-main-repo ${BRANCH} || return $?
+
+  if [ -z "${IS_FORK}" ]; then
+    logCmnd git pull
+  else
+    logCmnd git-resync-main-repo ${BRANCH} || return $?
+  fi
+
   logCmnd git-rm-merged-local-branches || return $?
 }
 
@@ -548,4 +555,40 @@ function installPathogen() {
   if [ ! -s "${PATHOGEN_FILE}" ]; then
     mkdir -p ${AUTOLOAD_PATH} ~/.vim/bundle && curl -LSso ${PATHOGEN_FILE} https://tpo.pe/pathogen.vim
   fi
+}
+function rake-single {
+ local TEST_FILE="$(echo ${1} | xargs)"
+
+ logCmnd rake test TEST="${TEST_FILE}"
+}
+function s3cmd-dh {
+  local CMD="${1}"
+  local DIRECTORY="${HOME}/DreamObjects/${2}/"
+  local REMOTE="s3://${2}/"
+  local CMD_PARAMS=""
+
+  if [[ get == ${CMD} ]]; then
+    if [ ! -d "${DIRECTORY}" ]; then
+      logCmnd mkdir -p "${DIRECTORY}"
+    fi
+
+    CMD_PARAMS="${REMOTE} ${DIRECTORY}"
+  elif [[ push == ${CMD} ]]; then
+    if  [ ! -d "${DIRECTORY}" ]; then
+      echo "Fail: Can't find directory '${DIRECTORY}'"
+      return 1
+    fi
+
+    CMD_PARAMS="${DIRECTORY} ${REMOTE}"
+  else
+    echo "Fail: not a command '${CMD}'"
+    return 1
+  fi
+
+  logCmnd s3cmd sync --no-delete-removed --no-preserve --exclude "*.log" --rexclude "^\." --rexclude "\/\." ${CMD_PARAMS}
+}
+function dhbackup {
+  s3cmd-dh push 'b137124-music' || exit $?
+  s3cmd-dh push 'b137124-documents' || exit $?
+  s3cmd-dh push 'b137124-pictures' || exit $?
 }

@@ -33,8 +33,13 @@ readonly _REPLACE_MAC_LIST=(
 )
 
 sourceFromList "${_SOURCE_LIST[@]}"
-addToPathFromList "${_PATH_LIST[@]}"
-softLinkFromList "${_SOFT_LINK_LIST[@]}"
+
+if [ -z "${IS_DOCKER}" ]; then
+  addToPathFromList "${_PATH_LIST[@]}"
+  softLinkFromList "${_SOFT_LINK_LIST[@]}"
+  installPathogen
+  weeklyGitPull "${LINUX_SETUP_DIR}/.."
+fi
 
 if [ -n "$(isMac)" ]; then
   softLinkFromList "${_SOFT_LINK_MAC_LIST[@]}"
@@ -52,12 +57,8 @@ complete -r scp 2>/dev/null
 #PERL_MB_OPT="--install_base \"/Users/mcrockett/perl5\""; export PERL_MB_OPT;
 #PERL_MM_OPT="INSTALL_BASE=/Users/mcrockett/perl5"; export PERL_MM_OPT;
 
-installPathogen
-
 export NVM_DIR="$HOME/.nvm"
 export EDITOR=vim
-
-weeklyGitPull "${LINUX_SETUP_DIR}/.."
 
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [[ -s "$HOME/perl5/perlbrew/etc/bashrc" ]] && source "$HOME/perl5/perlbrew/etc/bashrc" # Load perlbrew into a shell session *as a function*

@@ -52,6 +52,9 @@ if has("autocmd")
     \   exe "normal g`\"" |
     \ endif
 
+  autocmd BufEnter *.html setlocal indentexpr=
+  autocmd BufEnter *.css  setlocal indentexpr=
+  au BufNewFile,BufRead [Dd]ockerfile,Dockerfile* set filetype=dockerfile
 endif " has("autocmd")
 
 set nocindent
@@ -71,9 +74,6 @@ set hlsearch        " highlights search results
 set hl+=l:Visual
 set wildmode=longest,list
 set t_Co=256
-
-autocmd BufEnter *.html setlocal indentexpr=
-autocmd BufEnter *.css  setlocal indentexpr=
 
 if has("pathogen")
   execute pathogen#infect()
