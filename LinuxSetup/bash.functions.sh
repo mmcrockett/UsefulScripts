@@ -545,7 +545,7 @@ function isMac {
   fi
 }
 function mikeplayer() {
-  local _DIRECTORY="/Users/mcrockett/DreamObjects/Music/"
+  local _DIRECTORY="/Users/mcrockett/DreamObjects/b137124-music/"
   ruby "${HOME}/UsefulScripts.mmcrockett/MikePlayer.rb" --directory ${_DIRECTORY} ${@}
 }
 function installPathogen() {
@@ -591,4 +591,38 @@ function dhbackup {
   s3cmd-dh push 'b137124-music' || exit $?
   s3cmd-dh push 'b137124-documents' || exit $?
   s3cmd-dh push 'b137124-pictures' || exit $?
+}
+function docker-ps-short {
+  docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Ports}}"
+}
+function rails-changed-tests {
+  local CHANGED_FILES="$(git status -s | grep --invert "^D" | cut -c4- | grep ".*\.rb$")"
+  local FILES_UNDER_TEST=""
+  local RENAME="FALSE"
+
+  for FILE in ${CHANGED_FILES}; do
+    if [[ "->" == "${FILE}" ]] ; then
+      RENAME="TRUE"
+    elif [[ "TRUE" == ${RENAME} ]]; then
+      RENAME="FALSE"
+      FILES_UNDER_TEST="${FILES_UNDER_TEST% *} ${FILE}"
+    else
+      if [[ "${FILE}" =~ /.*test\.rb$/ ]]; then
+        FILES_UNDER_TEST="${FILES_UNDER_TEST} ${FILE}"
+      else
+        local TEST_FILE="${FILE/app/test}"
+        TEST_FILE="${TEST_FILE/.rb/_test.rb}"
+
+        if [ -f "${TEST_FILE}" ]; then
+          FILES_UNDER_TEST="${FILES_UNDER_TEST} ${TEST_FILE}"
+        fi
+      fi
+    fi
+  done
+
+  if [ -n "${FILES_UNDER_TEST}" ]; then
+    logCmnd rails test ${FILES_UNDER_TEST}
+  else
+    echo "Didn't find any changes."
+  fi
 }

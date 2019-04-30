@@ -1,6 +1,6 @@
 #!/bin/bash
 
-exit 0
+source "/Users/mcrockett/UsefulScripts.mmcrockett/LinuxSetup/bash.functions.sh"
 
 DESKTOP="${HOME}/Desktop"
 DATESTAMP="$(date "+%Y%m%d")"
@@ -39,7 +39,7 @@ function successfile {
 }
 
 find ${GNUCASH_LOCATION} -name "*.log" -mtime +10 -exec rm -rf {} \; || failfile "remove_gnucash_logs"
-cp ${GNUCASH_LOCATION} ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
+cp ${GNUCASH_LOCATION}/MikeAccounts.gnucash ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
 dhbackup || failfile "dreamobjects_sync"
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_FF_SRC}" washingrving@mmcrockett.com:${RSYNC_FF_DEST} || failfile "rsync_firefox"
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_TB_SRC}" washingrving@mmcrockett.com:${RSYNC_TB_DEST} || failfile "rsync_thunderbird"

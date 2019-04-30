@@ -14,10 +14,10 @@
   </array>
 
   <key>StartInterval</key>
-  <integer>87236</integer>
+  <integer>39622</integer>
 
   <key>StandardErrorPath</key>
-  <string>/Users/mcrockett/launchctl.backupsh.err</string>
+  <string>/Users/mcrockett/Desktop/launchctl.backupsh.err</string>
 
   <key>StandardOutPath</key>
   <string>/Users/mcrockett/launchctl.backupsh.out</string>

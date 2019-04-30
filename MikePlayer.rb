@@ -34,6 +34,16 @@ class MikePlayer
     check_system
     preprocess_playlist
 
+    if (true == options[:list])
+      songs = @songs.map { |song| File.basename(song) }
+
+      songs.sort.each do |song|
+        puts "#{File.basename(song)}"
+      end
+
+      exit 0
+    end
+
     args.flatten.each do |arg|
       if (true == File.file?(arg))
         self << arg
@@ -158,8 +168,8 @@ class MikePlayer
   end
 
   def play
-    print "Playlist #{@pl_data[:playlist_name]} loaded #{@pl_data[:loaded_song_count]} songs, added #{@pl_data[:found_song_count]}\n"
     song_data = []
+    pl_length = 0
 
     if (true == @shuffle)
       @songs.shuffle!
@@ -167,7 +177,10 @@ class MikePlayer
 
     @songs.each do |song|
       song_data << Mp3Info.new(song)
+      pl_length += song_data.last.length
     end
+
+    print "Playlist #{@pl_data[:playlist_name]} loaded #{@pl_data[:loaded_song_count]} songs with length #{as_duration_str(pl_length)}, added #{@pl_data[:found_song_count]}\n"
 
     thread = Thread.new do
       song_count = "#{@songs.size}"
@@ -270,13 +283,18 @@ class MikePlayer
   end
 
   private
-  def as_duration_str(l, t)
-    l_min = "%02d" % (l / 60).floor
+  def as_duration_str(l, t = nil)
+    l_hr  = "%02d" % (l / 3600).floor
+    l_min = "%02d" % ((l % 3600 )/ 60).floor
     l_sec = "%02d" % (l % 60)
-    e_min = "%02d" % (t / 60).floor
-    e_sec = "%02d" % (t % 60)
+    e_min = "%02d" % (t / 60).floor unless t.nil?
+    e_sec = "%02d" % (t % 60) unless t.nil?
 
-    return "#{e_min}:#{e_sec} [#{l_min}:#{l_sec}]"
+    result = "#{l_min}:#{l_sec}"
+    result = "#{l_hr}:#{result}" if l >= 3600
+    result = "#{e_min}:#{e_sec} [#{result}]" unless t.nil?
+
+    return result
   end
 
   def determine_playlist(user_option)
@@ -343,6 +361,7 @@ OptionParser.new do |opt|
   opt.on('-o', '--overwrite', 'Overwrite playlist.') { |o| options[:overwrite] = true }
   opt.on('-v', '--volume', 'Changes default volume.') { |o| options[:volume] = o }
   opt.on('-p', '--playlist name', 'Play playlist name.') { |o| options[:playlist] = o }
+  opt.on('-l', '--list name', 'List songs in playlist.') { |o| options[:list] = true; options[:playlist] = o }
   opt.on('-d', '--directory name', 'Directory to find mp3s.') { |o| options[:directory] = o }
   opt.on('-t', '--time minutes', 'Limit time to number of minutes.') { |o| options[:minutes] = o }
 end.parse!
