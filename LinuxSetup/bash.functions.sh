@@ -603,11 +603,13 @@ function rails-changed-tests {
   for FILE in ${CHANGED_FILES}; do
     if [[ "->" == "${FILE}" ]] ; then
       RENAME="TRUE"
-    elif [[ "TRUE" == ${RENAME} ]]; then
-      RENAME="FALSE"
-      FILES_UNDER_TEST="${FILES_UNDER_TEST% *} ${FILE}"
     else
-      if [[ "${FILE}" =~ /.*test\.rb$/ ]]; then
+      if [[ "TRUE" == ${RENAME} ]]; then
+        RENAME="FALSE"
+        FILES_UNDER_TEST="${FILES_UNDER_TEST% *}"
+      fi
+
+      if [ "${FILE%*_test.rb}" != "${FILE}" ]; then
         FILES_UNDER_TEST="${FILES_UNDER_TEST} ${FILE}"
       else
         local TEST_FILE="${FILE/app/test}"
