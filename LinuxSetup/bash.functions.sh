@@ -604,18 +604,24 @@ function rails-changed-tests {
     if [[ "->" == "${FILE}" ]] ; then
       RENAME="TRUE"
     else
+      local TEST_FILE="${FILE}"
+
       if [[ "TRUE" == ${RENAME} ]]; then
         RENAME="FALSE"
         FILES_UNDER_TEST="${FILES_UNDER_TEST% *}"
       fi
 
-      if [ "${FILE%*_test.rb}" != "${FILE}" ]; then
-        FILES_UNDER_TEST="${FILES_UNDER_TEST} ${FILE}"
-      else
-        local TEST_FILE="${FILE/app/test}"
+      # If this isn't already a test file, follow rails convention and see if a testfile exists
+      # EXAMPLE: app/models/person.rb
+      # CHECK FOR: test/models/person_test.rb and add file
+      if [ "${FILE%*_test.rb}" == "${FILE}" ]; then
+        TEST_FILE="${FILE/app/test}"
         TEST_FILE="${TEST_FILE/.rb/_test.rb}"
+      fi
 
-        if [ -f "${TEST_FILE}" ]; then
+      if [ -f "${TEST_FILE}" ]; then
+        # If we didn't already include the file
+        if [ "${FILES_UNDER_TEST%*${TEST_FILE}}" == "${FILES_UNDER_TEST}" ]; then
           FILES_UNDER_TEST="${FILES_UNDER_TEST} ${TEST_FILE}"
         fi
       fi
