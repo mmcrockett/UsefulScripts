@@ -12,3 +12,7 @@
 [alias]
   hist     = log --graph --pretty=format:'%C(auto)%h %s %C(Cyan)%an %C(green)%ar %C(auto)%d' -n 20
   hist-all = log --graph --pretty=format:'%C(auto)%h %s %C(Cyan)%an %C(green)%ar %C(auto)%d'
+[diff]
+  tool = gvimdiff
+[difftool]
+  prompt = false
