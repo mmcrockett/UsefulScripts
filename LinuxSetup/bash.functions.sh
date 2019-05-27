@@ -546,7 +546,8 @@ function isMac {
 }
 function mikeplayer() {
   local _DIRECTORY="/Users/mcrockett/DreamObjects/b137124-music/"
-  ruby "${HOME}/UsefulScripts.mmcrockett/MikePlayer.rb" --directory ${_DIRECTORY} ${@}
+  local _VOLUME=0.5
+  ruby "${HOME}/UsefulScripts.mmcrockett/MikePlayer.rb" --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
 }
 function installPathogen() {
   local AUTOLOAD_PATH="${HOME}/.vim/autoload"

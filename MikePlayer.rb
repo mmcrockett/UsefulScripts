@@ -359,7 +359,7 @@ OptionParser.new do |opt|
   opt.on('-s', '--shuffle', 'Shuffle playlist.') { |o| options[:shuffle] = true }
   opt.on('-r', '--random n', 'Create playlist with randomly picked n songs.') { |o| options[:random] = o.to_i }
   opt.on('-o', '--overwrite', 'Overwrite playlist.') { |o| options[:overwrite] = true }
-  opt.on('-v', '--volume', 'Changes default volume.') { |o| options[:volume] = o }
+  opt.on('-v', '--volume n', 'Changes default volume.') { |o| options[:volume] = o }
   opt.on('-p', '--playlist name', 'Play playlist name.') { |o| options[:playlist] = o }
   opt.on('-l', '--list name', 'List songs in playlist.') { |o| options[:list] = true; options[:playlist] = o }
   opt.on('-d', '--directory name', 'Directory to find mp3s.') { |o| options[:directory] = o }
