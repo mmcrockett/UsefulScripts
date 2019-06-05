@@ -1,5 +1,6 @@
-readonly LINUX_SETUP_DIR="${HOME}/UsefulScripts.mmcrockett/LinuxSetup"
-readonly MAC_SETUP_DIR="${HOME}/UsefulScripts.mmcrockett/MacScripts"
+readonly SETUP_DIR="${HOME}/UsefulScripts.mmcrockett"
+readonly LINUX_SETUP_DIR="${SETUP_DIR}/LinuxSetup"
+readonly MAC_SETUP_DIR="${SETUP_DIR}/MacScripts"
 
 [[ -s "${LINUX_SETUP_DIR}/bash.functions.sh" ]] && source "${LINUX_SETUP_DIR}/bash.functions.sh"
 
