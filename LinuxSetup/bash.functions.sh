@@ -372,7 +372,6 @@ function git-rm-merged-local-branches {
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="master"
-  local IS_BRANCH="no"
   local IS_FORK="$(git config --get remote.origin.url | grep "mcrockett")"
 
   if [ -n "${1}" ]; then
@@ -532,8 +531,23 @@ function find-grep() {
     logCmnd find ${_DIRECTORY} "${cond[@]}" -exec grep -${_GREPARGS} "${_GREP}" {} \;
   fi
 }
+function git-force-push-branch {
+  logCmnd git push -f origin "$(git rev-parse --abbrev-ref HEAD)"
+}
 function git-smash {
   logCmnd git rebase -i HEAD~${1:-2}
+}
+function git-commit-smash-push {
+  logCmnd git commit -m '...' . && git-smash && git-force-push-branch
+}
+function git-resync-rebase-push-branch {
+  local START_BRANCH="$(git rev-parse --abbrev-ref HEAD | grep --invert 'master')"
+
+  if [ -n "${START_BRANCH}" ]; then
+    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase master && git-force-push-branch
+  else
+    echo "On master, doing nothing."
+  fi
 }
 function isMac {
   local _UNAME="$(uname -s)"
@@ -634,8 +648,84 @@ function rails-changed-tests {
   done
 
   if [ -n "${FILES_UNDER_TEST}" ]; then
-    logCmnd rails test ${FILES_UNDER_TEST}
+    logCmnd rails test ${FILES_UNDER_TEST} ${@}
   else
     echo "Didn't find any changes."
+  fi
+}
+function rails-retry-test {
+  local MAX=1000
+
+  for n in $(seq 0 $MAX); do
+    if [[ 0 == $(($n % 10)) && 0 != $n ]]; then printf '.'; fi
+    rails test ${@} > /dev/null || break
+  done;
+
+  if [[ $n == $MAX ]]; then
+    echo "Finished ${MAX} runs."
+  else
+    echo ""
+  fi
+}
+function dockercompose-do {
+  if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
+    local _PWD="${PWD}"
+    cd ${DOCKERCOMPOSE_HOME} && "${@}"
+    local _RESULT=$?
+    cd ${_PWD}
+    return $_RESULT
+  else
+    echo 'Expected DOCKERCOMPOSE_HOME to be set.'
+    return 1
+  fi
+}
+function docker-start {
+  dockercompose-do docker-compose up --build -d
+}
+function docker-stop {
+  dockercompose-do docker-compose down
+}
+function docker-restart {
+  dockercompose-do docker-stop && docker-start && docker system prune -f
+}
+function docker-switch-to-local-rails {
+  if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
+    local DOCKER_PID="$(docker ps -q --filter "name=.*app.*")"
+    local API_DIR="${WORKSPACE_HOME}/weinfuse_api"
+
+    if [ -n "${DOCKER_PID}" ]; then
+      docker kill ${DOCKER_PID} && rm ${API_DIR}/tmp/pids/server.pid
+    fi
+
+    cd ${API_DIR} && rails server --port 3000 --binding 0.0.0.0
+  fi
+}
+function ps-find {
+  local NAME="${1}"
+
+  if [[ ${NAME} = *grep* ]]; then
+    ps -A | grep "${NAME}"
+  elif [ -n "${NAME}" ]; then
+    ps -A | grep "${NAME}" | grep --invert 'grep'
+  fi
+}
+function list-docker-tags {
+  local NAMESPACE=$1
+
+  if [ -z "${NAMESPACE}" ]; then
+    echo "Need the namespace example 'library/debian'" && return 1
+  fi
+
+  command -v jq >/dev/null 2>&1
+
+  if [ "0" -eq "$?" ]; then
+    i=0
+
+    while [ $? == 0 ]; do 
+      i=$((i+1))
+      curl https://registry.hub.docker.com/v2/repositories/${NAMESPACE}/tags/?page=$i 2>/dev/null|jq '."results"[]["name"]'
+    done
+  else
+    abort 'Need jq installed.'
   fi
 }
