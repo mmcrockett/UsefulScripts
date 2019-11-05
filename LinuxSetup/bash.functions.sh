@@ -140,6 +140,14 @@ function packagesFromList() {
     shift
   done
 }
+alias mvim-no-opts='/usr/local/bin/mvim'
+function mvim {
+  if [ -z "${@}" ]; then
+    mvim-no-opts --servername tmp --remote-silent "$(mktemp)"
+  else
+    mvim-no-opts --servername $(basename ${PWD}) --remote-silent ${@}
+  fi
+}
 function sourceFromList() {
   while [ $# -gt 0 ]; do
     if [ -s "${1}" ]; then
@@ -532,7 +540,7 @@ function find-grep() {
   fi
 }
 function git-force-push-branch {
-  logCmnd git push -f origin "$(git rev-parse --abbrev-ref HEAD)"
+  logCmnd git push -f origin "$(git_branch)"
 }
 function git-smash {
   logCmnd git rebase -i HEAD~${1:-2}
@@ -540,14 +548,20 @@ function git-smash {
 function git-commit-smash-push {
   logCmnd git commit -m '...' . && git-smash && git-force-push-branch
 }
-function git-resync-rebase-push-branch {
-  local START_BRANCH="$(git rev-parse --abbrev-ref HEAD | grep --invert 'master')"
+function git-commit-smash {
+  logCmnd git commit -m '...' . && git-smash
+}
+function git-resync-rebase {
+  local START_BRANCH="$(git_branch)"
 
-  if [ -n "${START_BRANCH}" ]; then
-    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase master && git-force-push-branch
+  if [[ "master" != "${START_BRANCH}" ]]; then
+    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase master
   else
-    echo "On master, doing nothing."
+    abort "On master, doing nothing."
   fi
+}
+function git-resync-rebase-push-branch {
+  git-resync-rebase && git-force-push-branch
 }
 function isMac {
   local _UNAME="$(uname -s)"
@@ -668,9 +682,11 @@ function rails-retry-test {
   fi
 }
 function dockercompose-do {
-  if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
+  if [ -d "${DOCKERCOMPOSE_FILE}" ]; then
+    docker-compose --file "${DOCKERCOMPOSE_FILE}"
+  elif [ -d "${DOCKERCOMPOSE_HOME}" ]; then
     local _PWD="${PWD}"
-    cd ${DOCKERCOMPOSE_HOME} && "${@}"
+    cd ${DOCKERCOMPOSE_HOME} && docker-compose "${@}"
     local _RESULT=$?
     cd ${_PWD}
     return $_RESULT
@@ -680,13 +696,13 @@ function dockercompose-do {
   fi
 }
 function docker-start {
-  dockercompose-do docker-compose up --build -d
+  dockercompose-do up --build -d
 }
 function docker-stop {
-  dockercompose-do docker-compose down
+  dockercompose-do down
 }
 function docker-restart {
-  dockercompose-do docker-stop && docker-start && docker system prune -f
+  docker-stop && docker-start && docker system prune -f
 }
 function docker-switch-to-local-rails {
   if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
@@ -727,5 +743,37 @@ function list-docker-tags {
     done
   else
     abort 'Need jq installed.'
+  fi
+}
+function git_branch {
+  echo "$(git rev-parse --abbrev-ref HEAD)"
+}
+function git {
+  local GIT=/usr/local/bin/git
+  local GIT_CMD="${1}"
+  local GIT_OPT="${2}"
+
+  command -v ${GIT} >/dev/null 2>&1
+
+  if [ "0" -eq "$?" ]; then
+    if [[ "checkout" == ${GIT_CMD} ]]; then
+      local START_BRANCH="$(git_branch)"
+
+      if [[ "-" == ${GIT_OPT} ]]; then
+        if [ -n "${OLDGITBRANCH}" ]; then
+          ${GIT} checkout ${OLDGITBRANCH}
+        else
+          echo "OLDGITBRANCH not set."
+        fi
+      else
+        ${GIT} ${@}
+      fi
+
+      OLDGITBRANCH="${START_BRANCH}"
+    else
+      ${GIT} "${@}"
+    fi
+  else
+    abort "GIT not installed or set incorrectly '${GIT}'"
   fi
 }

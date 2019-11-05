@@ -6,8 +6,6 @@ alias unlock='xattr -d com.apple.quarantine ${1}'
 alias move-podcasts='rsync -avz --remove-source-files hyperlvs71.qa.paypal.com:~/Downloads/*.mp3 ~/Downloads/'
 alias rake-no-error-out='rake 2> /dev/null'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
-alias mvim='mvim --servername $(basename ${PWD}) --remote-silent'
-alias mvim-no-opts='/usr/local/bin/mvim'
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(
@@ -15,9 +13,10 @@ function create-find-grep-aliases {
     js
     html
   )
+  local FILE_ENDING=""
 
   for FILE_ENDING in "${FILE_ENDINGS[@]}"; do
-    alias find-grep-${FILE_ENDING}='find-grep -n "*.${FILE_ENDING}"'
+    alias find-grep-${FILE_ENDING}="find-grep -n '*.${FILE_ENDING}'"
   done
 }
 

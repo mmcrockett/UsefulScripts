@@ -52,8 +52,8 @@ if has("autocmd")
     \   exe "normal g`\"" |
     \ endif
 
-  autocmd BufEnter *.html setlocal indentexpr=
-  autocmd BufEnter *.css  setlocal indentexpr=
+  "autocmd BufEnter *.html setlocal indentexpr=
+  "autocmd BufEnter *.css  setlocal indentexpr=
   au BufNewFile,BufRead [Dd]ockerfile,Dockerfile* set filetype=dockerfile
 endif " has("autocmd")
 

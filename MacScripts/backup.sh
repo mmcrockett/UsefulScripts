@@ -30,7 +30,7 @@ function failfile {
 function successfile {
   local FILE="${DESKTOP}/${DATESTAMP}.launchctl.success.txt"
 
-  find ${DESKTOP} -name "*launchctl.success.txt" -mtime 2 -exec rm -rf {} \;
+  find ${DESKTOP} -name "*launchctl.success.txt" -mtime '+5d' -exec rm -rf {} \;
   touch "${FILE}"
 
   if [ -f "${OUT_LOG}" ]; then
@@ -38,7 +38,7 @@ function successfile {
   fi
 }
 
-find ${GNUCASH_LOCATION} -name "*.log" -mtime +10 -exec rm -rf {} \; || failfile "remove_gnucash_logs"
+find ${GNUCASH_LOCATION} -name "*.log" -mtime '+10d' -exec rm -rf {} \; || failfile "remove_gnucash_logs"
 cp ${GNUCASH_LOCATION}/MikeAccounts.gnucash ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
 dhbackup || failfile "dreamobjects_sync"
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_FF_SRC}" washingrving@mmcrockett.com:${RSYNC_FF_DEST} || failfile "rsync_firefox"
