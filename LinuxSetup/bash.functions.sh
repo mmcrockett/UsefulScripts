@@ -682,8 +682,8 @@ function rails-retry-test {
   fi
 }
 function dockercompose-do {
-  if [ -d "${DOCKERCOMPOSE_FILE}" ]; then
-    docker-compose --file "${DOCKERCOMPOSE_FILE}"
+  if [ -f "${DOCKERCOMPOSE_FILE}" ]; then
+    docker-compose --file "${DOCKERCOMPOSE_FILE}" "${@}"
   elif [ -d "${DOCKERCOMPOSE_HOME}" ]; then
     local _PWD="${PWD}"
     cd ${DOCKERCOMPOSE_HOME} && docker-compose "${@}"
@@ -758,18 +758,29 @@ function git {
   if [ "0" -eq "$?" ]; then
     if [[ "checkout" == ${GIT_CMD} ]]; then
       local START_BRANCH="$(git_branch)"
+      local END_BRANCH=""
 
       if [[ "-" == ${GIT_OPT} ]]; then
-        if [ -n "${OLDGITBRANCH}" ]; then
-          ${GIT} checkout ${OLDGITBRANCH}
+        if [ -n "${LASTGITBRANCH}" ]; then
+          ${GIT} checkout ${LASTGITBRANCH}
         else
-          echo "OLDGITBRANCH not set."
+          echo "LASTGITBRANCH not set."
         fi
       else
         ${GIT} ${@}
       fi
 
-      OLDGITBRANCH="${START_BRANCH}"
+      END_BRANCH="$(git_branch)"
+
+      if [[ "master" == "${END_BRANCH}" ]]; then
+        LASTNONMASTERGITBRANCH="${LASTGITBRANCH}"
+      fi
+
+      if [[ "master" != "${START_BRANCH}" ]]; then
+        LASTGITBRANCH="${START_BRANCH}"
+      else
+        LASTGITBRANCH="${LASTNONMASTERGITBRANCH}"
+      fi
     else
       ${GIT} "${@}"
     fi
