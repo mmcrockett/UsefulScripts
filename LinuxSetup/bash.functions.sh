@@ -142,7 +142,7 @@ function packagesFromList() {
 }
 alias mvim-no-opts='/usr/local/bin/mvim'
 function mvim {
-  if [ -z "${@}" ]; then
+  if [ "0" -eq "$#" ]; then
     mvim-no-opts --servername tmp --remote-silent "$(mktemp)"
   else
     mvim-no-opts --servername $(basename ${PWD}) --remote-silent ${@}
@@ -249,7 +249,6 @@ function removeUnwantedCharacters() {
     echo "${STRIPPED_STRING}"
   fi
 }
-
 function renameSafe() {
   while [ $# -gt 0 ]; do
     if [ -f "${1}" ]; then
@@ -270,7 +269,6 @@ function renameSafe() {
     shift
   done
 }
-
 function trim() {
   local SCRIPT="${FUNCNAME[0]}"
   if [ -z "${1}" ]; then
@@ -281,7 +279,6 @@ function trim() {
     echo "${STRIPPED_STRING}"
   fi
 }
-
 function emptyCamera() {
   local SCRIPT="${FUNCNAME[0]}"
   local VOLUMES=("CANONEOS" "GECamera" "Picasa 3")
@@ -311,7 +308,6 @@ function emptyCamera() {
     fi
   done
 }
-
 function processPodcasts() {
   local SCRIPT="${FUNCNAME[0]}"
   local POD_PLAYER="/Volumes/PODCAST"
@@ -374,9 +370,13 @@ function processPodcasts() {
 }
 
 function git-rm-merged-local-branches {
-  git branch --merged | grep "^\s*[mcrockett]" | xargs -n 1 git branch -d
-}
+  local RM_BRANCHES="$(git branch --merged | grep "^\s*mcrockett")"
 
+  for BRANCH in ${RM_BRANCHES}; do
+    git-branch-history rm ${BRANCH}
+    git branch -d ${BRANCH}
+  done
+}
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="master"
@@ -396,7 +396,6 @@ function git-handle-pr-merged {
 
   logCmnd git-rm-merged-local-branches || return $?
 }
-
 function git-resync-main-repo {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="master"
@@ -406,9 +405,7 @@ function git-resync-main-repo {
     BRANCH="${1}"
   fi
 
-  IS_BRANCH="$(git branch | grep "\*" | grep "${BRANCH}")"
-
-  if [ -z "${IS_BRANCH}" ]; then
+  if [ -z "$(git-is-current-branch ${BRANCH})" ]; then
     abort "Not on the ${BRANCH} branch."
   else
     logCmnd git fetch upstream || (echo "FIX try 'git remote add upstream git@github.com:Example/Sample.git'" && return $?)
@@ -416,7 +413,6 @@ function git-resync-main-repo {
     logCmnd git push origin || return $?
   fi
 }
-
 function undoPreviousJava {
   if [ -n "${JAVA_HOME}" ]; then
     export PATH="${PATH//${JAVA_HOME}}"
@@ -428,7 +424,6 @@ function undoPreviousJava {
     unset M2_HOME
   fi
 }
-
 function rename_mp3_to_mike_format() {
   local SCRIPT="${FUNCNAME[0]}"
 
@@ -748,6 +743,70 @@ function list-docker-tags {
 function git_branch {
   echo "$(git rev-parse --abbrev-ref HEAD)"
 }
+function git-branch-history {
+  if [ -d "${PWD}/.git" ]; then
+    local F="${PWD}/.git/CHECKOUT_HISTORY"
+    local C_M_D="${1}"
+    local BRANCH="${2}"
+    local R=""
+
+    if [[ "rm" != "${C_M_D}" ]] && [[ "add" != "${C_M_D}" ]] && [[ "last" != "${C_M_D}" ]]; then
+      abort "Unknown option git-branch-history ${C_M_D}"
+    fi
+
+    if [ ! -f "${F}" ]; then
+      touch "${F}"
+    fi
+
+    if [[ "rm" == "${C_M_D}" ]] || [[ "add" == "${C_M_D}" ]]; then
+      local T="$(mktemp)"
+
+      grep -v "${BRANCH}" "${F}" > "${T}"
+      mv "${T}" "${F}"
+    fi
+
+    if [[ "add" == "${C_M_D}" ]]; then
+      if [ -n "${BRANCH}" ]; then
+        echo "${BRANCH}" >> "${F}"
+      fi
+    fi
+
+    if [[ "last" == "${C_M_D}" ]]; then
+      local LAST=""
+
+      if [ -n "${BRANCH}" ]; then
+        LAST="$(grep -v "${BRANCH}" "${F}" | tail -n 1)"
+      else
+        LAST="$(tail -n 1 ${F})"
+      fi
+
+      echo "${LAST}"
+    fi
+  fi
+}
+function git-is-current-branch {
+  local BRANCH="${1}"
+
+  if [ -n "${BRANCH}" ]; then
+    echo "$(git branch | grep "^\*" | grep "${BRANCH}")"
+  else
+    echo ""
+  fi
+}
+function git-record-branch-switch {
+  local FROM="${1}"
+  local TO="${2}"
+
+  if [ -n "${FROM}" ]; then
+    if [[ "master" != "${FROM}" ]]; then
+      git-branch-history add ${FROM}
+    fi
+  fi
+
+  if [ -n "${TO}" ]; then
+    git-branch-history rm "${TO}"
+  fi
+}
 function git {
   local GIT=/usr/local/bin/git
   local GIT_CMD="${1}"
@@ -758,28 +817,20 @@ function git {
   if [ "0" -eq "$?" ]; then
     if [[ "checkout" == ${GIT_CMD} ]]; then
       local START_BRANCH="$(git_branch)"
-      local END_BRANCH=""
+      local LAST_BRANCH="$(git-branch-history last ${START_BRANCH})"
 
       if [[ "-" == ${GIT_OPT} ]]; then
-        if [ -n "${LASTGITBRANCH}" ]; then
-          ${GIT} checkout ${LASTGITBRANCH}
+        if [ -n "${END_BRANCH}" ]; then
+          if [ -z "$(git-is-current-branch ${END_BRANCH})" ]; then
+            ${GIT} checkout ${END_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${END_BRANCH}"
+          else
+            echo "Already on branch ${END_BRANCH}."
+          fi
         else
-          echo "LASTGITBRANCH not set."
+          echo "No history found."
         fi
       else
-        ${GIT} ${@}
-      fi
-
-      END_BRANCH="$(git_branch)"
-
-      if [[ "master" == "${END_BRANCH}" ]]; then
-        LASTNONMASTERGITBRANCH="${LASTGITBRANCH}"
-      fi
-
-      if [[ "master" != "${START_BRANCH}" ]]; then
-        LASTGITBRANCH="${START_BRANCH}"
-      else
-        LASTGITBRANCH="${LASTNONMASTERGITBRANCH}"
+        ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "${END_BRANCH}"
       fi
     else
       ${GIT} "${@}"
