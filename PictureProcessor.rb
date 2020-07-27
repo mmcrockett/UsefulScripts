@@ -13,7 +13,9 @@ class PictureProcessor
     @indir         = options[:indir]
     @outdir        = options[:outdir]
 
-    raise unless Dir.exist?(@indir) && Dir.exist?(@outdir) && system("sips --help #{devnull}")
+    raise 'Bad indir' unless Dir.exist?(@indir)
+    raise 'Bad outdir' unless Dir.exist?(@outdir)
+    raise 'Requires sips installation' unless system("sips --help #{devnull}")
   end
 
   def process

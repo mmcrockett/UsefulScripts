@@ -11,7 +11,6 @@ readonly _SOURCE_LIST=(
 readonly _PATH_LIST=(
   "/usr/local/opt/gnu-sed/libexec/gnubin"
   "/usr/local/opt/coreutils/libexec/gnubin"
-  #"${HOME}/.rvm/bin"
 )
 
 readonly _SOFT_LINK_LIST=(

@@ -5,7 +5,7 @@ alias gimp_resize_images="/Applications/GIMP.app/Contents/MacOS/GIMP -i -b '(bat
 alias unlock='xattr -d com.apple.quarantine ${1}'
 alias rake-no-warn='rake 2>&1 | grep -v "warning:"'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
-alias git-commit-wip='git add -A; git rm $(git ls-files --deleted) 2> /dev/null; git commit --no-verify -m "--wip--"'
+alias git-commit-wip='git add -A; git rm $(git ls-files --deleted) 2> /dev/null; git commit -m "--wip--"'
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(

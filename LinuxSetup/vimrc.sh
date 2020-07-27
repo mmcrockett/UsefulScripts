@@ -78,3 +78,8 @@ set t_Co=256
 if has("pathogen")
   execute pathogen#infect()
 endif
+
+call plug#begin()
+Plug 'yuezk/vim-js'
+Plug 'maxmellon/vim-jsx-pretty'
+call plug#end()

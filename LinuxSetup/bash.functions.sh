@@ -141,6 +141,7 @@ function packagesFromList() {
   done
 }
 alias mvim-no-opts='/usr/local/bin/mvim'
+alias mvim-single='mvim-no-opts --servername singlejunkyfunkymonkey --remote-silent ${@}'
 function mvim {
   if [ "0" -eq "$#" ]; then
     mvim-no-opts --servername tmp --remote-silent "$(mktemp)"
@@ -474,7 +475,7 @@ function find-grep() {
   local _GREP=""
   local _GREPARGS="IH"
   local _FILEGLOB=""
-  local _DIRECTORY="${PWD}"
+  local _DIRECTORY=""
   local _USAGE_MSG=' [-n <fileglob> -g <grep arguments> <directory>] <grepword> Calls find with grep options.
     -n <fileglob> Is passed to -name option, if missing causes -type f
     -g <grepargs> Defaults to -IH.
@@ -500,7 +501,7 @@ function find-grep() {
     if [ $OPTIND -le ${#@} ]; then
       local _NOOPTARG="${!OPTIND}"
 
-      if [ -d "${_NOOPTARG}" ]; then
+      if [ -z "${_DIRECTORY}" ] && [ -d "${_NOOPTARG}" ]; then
         _DIRECTORY="${_NOOPTARG}"
       elif [ -z "${_GREP}" ]; then
         _GREP="${!OPTIND}"
@@ -519,9 +520,7 @@ function find-grep() {
   fi
 
   if [ ! -d "${_DIRECTORY}" ]; then
-    abort "Directory not valid. '${_DIRECTORY}'."
-    usage "${_USAGE_MSG}"
-    _USAGE_MSG=""
+    _DIRECTORY="${PWD}"
   fi
 
   if [ -n "${_USAGE_MSG}" ]; then
@@ -535,7 +534,11 @@ function find-grep() {
   fi
 }
 function git-force-push-branch {
-  logCmnd git push -f origin "$(git_branch)"
+  if [ -z "$(git-is-current-branch master)" ]; then
+    logCmnd git push -f origin "$(git-current-branch)"
+  else
+    abort "No force push master!"
+  fi
 }
 function git-smash {
   logCmnd git rebase -i HEAD~${1:-2}
@@ -547,10 +550,12 @@ function git-commit-smash {
   logCmnd git commit -m '...' . && git-smash
 }
 function git-resync-rebase {
-  local START_BRANCH="$(git_branch)"
+  local START_BRANCH="$(git-current-branch)"
 
   if [[ "master" != "${START_BRANCH}" ]]; then
     git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase master
+
+    return $?
   else
     abort "On master, doing nothing."
   fi
@@ -570,7 +575,7 @@ function isMac {
 function mikeplayer() {
   local _DIRECTORY="/Users/mcrockett/DreamObjects/b137124-music/"
   local _VOLUME=0.5
-  MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
+  ruby "${HOME}/UsefulScripts.mmcrockett/MikePlayer.rb" --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
 }
 function processPhotos() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-pictures/"
@@ -582,6 +587,14 @@ function installPathogen() {
 
   if [ ! -s "${PATHOGEN_FILE}" ]; then
     mkdir -p ${AUTOLOAD_PATH} ~/.vim/bundle && curl -LSso ${PATHOGEN_FILE} https://tpo.pe/pathogen.vim
+  fi
+}
+function installPlug() {
+  local AUTOLOAD_PATH="${HOME}/.vim/autoload"
+  local PLUG_FILE="${AUTOLOAD_PATH}/plug.vim"
+
+  if [ ! -s "${PLUG_FILE}" ]; then
+    mkdir -p ${AUTOLOAD_PATH} ~/.vim/bundle && curl -LSso ${PLUG_FILE} https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim 
   fi
 }
 function rake-single {
@@ -691,6 +704,9 @@ function dockercompose-do {
   fi
 }
 function docker-start {
+  dockercompose-do up -d
+}
+function docker-start-rebuild {
   dockercompose-do up --build -d
 }
 function docker-stop {
@@ -698,6 +714,9 @@ function docker-stop {
 }
 function docker-restart {
   docker-stop && docker-start && docker system prune -f
+}
+function docker-restart-rebuild {
+  docker-stop && docker-start-rebuild && docker system prune -f
 }
 function docker-switch-to-local-rails {
   if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
@@ -740,7 +759,7 @@ function list-docker-tags {
     abort 'Need jq installed.'
   fi
 }
-function git_branch {
+function git-current-branch {
   echo "$(git rev-parse --abbrev-ref HEAD)"
 }
 function git-branch-history {
@@ -808,7 +827,7 @@ function git-record-branch-switch {
   fi
 }
 function git {
-  local GIT=/usr/local/bin/git
+  local GIT="$(which git)"
   local GIT_CMD="${1}"
   local GIT_OPT="${2}"
 
@@ -816,24 +835,31 @@ function git {
 
   if [ "0" -eq "$?" ]; then
     if [[ "checkout" == ${GIT_CMD} ]]; then
-      local START_BRANCH="$(git_branch)"
-      local LAST_BRANCH="$(git-branch-history last ${START_BRANCH})"
+      local START_BRANCH="$(git-current-branch)"
 
       if [[ "-" == ${GIT_OPT} ]]; then
-        if [ -n "${END_BRANCH}" ]; then
-          if [ -z "$(git-is-current-branch ${END_BRANCH})" ]; then
-            ${GIT} checkout ${END_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${END_BRANCH}"
+        local NEXT_BRANCH="$(git-branch-history last ${START_BRANCH})"
+
+        if [ -n "${NEXT_BRANCH}" ]; then
+          if [ -z "$(git-is-current-branch ${NEXT_BRANCH})" ]; then
+            ${GIT} checkout ${NEXT_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
           else
-            echo "Already on branch ${END_BRANCH}."
+            echo "Already on branch ${NEXT_BRANCH}."
           fi
         else
           echo "No history found."
         fi
       else
-        ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "${END_BRANCH}"
+        ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
       fi
     else
       ${GIT} "${@}"
+
+      if [[ "branch" == ${GIT_CMD} ]] && [[ "" != "${3}" ]]; then
+        if [[ "-D" == ${GIT_OPT} ]] || [[ "-d" == ${GIT_OPT} ]]; then
+          git-branch-history rm ${3}
+        fi
+      fi
     fi
   else
     abort "GIT not installed or set incorrectly '${GIT}'"
