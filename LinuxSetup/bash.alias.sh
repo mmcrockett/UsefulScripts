@@ -6,6 +6,7 @@ alias unlock='xattr -d com.apple.quarantine ${1}'
 alias rake-no-warn='rake 2>&1 | grep -v "warning:"'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
 alias git-commit-wip='git add -A; git rm $(git ls-files --deleted) 2> /dev/null; git commit -m "--wip--"'
+alias git-commit-wip-no-hooks='git-commit-wip -n'
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(

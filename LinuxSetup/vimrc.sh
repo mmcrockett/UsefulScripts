@@ -85,6 +85,13 @@ if empty(glob('~/.vim/autoload/plug.vim'))
   autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
 endif
 
+function JsonPPFunc()
+  :%!python -m json.tool
+  execute "normal gg=G"
+endfunction
+
+command Jsonpp call JsonPPFunc()
+
 call plug#begin()
 Plug 'yuezk/vim-js'
 Plug 'maxmellon/vim-jsx-pretty'

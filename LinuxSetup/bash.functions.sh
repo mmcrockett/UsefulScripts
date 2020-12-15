@@ -142,9 +142,22 @@ function packagesFromList() {
 }
 alias mvim-no-opts='/usr/local/bin/mvim'
 alias mvim-single='mvim-no-opts --servername singlejunkyfunkymonkey --remote-silent ${@}'
+function mvim-tmp-rb {
+  local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX).rb"
+  mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+}
+function mvim-tmp-json {
+  local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX).json"
+  mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+}
+function mvim-tmp-js {
+  local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX).js"
+  mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+}
 function mvim {
   if [ "0" -eq "$#" ]; then
-    mvim-no-opts --servername tmp --remote-silent "$(mktemp)"
+    local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX)"
+    mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
   else
     mvim-no-opts --servername $(basename ${PWD}) --remote-silent ${@}
   fi
@@ -378,9 +391,20 @@ function git-rm-merged-local-branches {
     git branch -d ${BRANCH}
   done
 }
+function git-default-branch-name {
+  local INFERRED_DEFAULT="$(git config --local --get-regexp branch 2> /dev/null | grep remote | cut -d '.' -f 2)"
+
+  if [ -n "${GIT_DEFAULT_BRANCH}" ]; then
+    echo "${GIT_DEFAULT_BRANCH}"
+  elif [ -n "${INFERRED_DEFAULT}" ]; then
+    echo "${INFERRED_DEFAULT}"
+  else
+    echo "master"
+  fi
+}
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
-  local BRANCH="master"
+  local BRANCH="$(git-default-branch-name)"
   local IS_FORK="$(git config --get remote.origin.url | grep "mcrockett")"
 
   if [ -n "${1}" ]; then
@@ -399,7 +423,7 @@ function git-handle-pr-merged {
 }
 function git-resync-main-repo {
   local SCRIPT="${FUNCNAME[0]}"
-  local BRANCH="master"
+  local BRANCH="$(git-default-branch-name)"
   local IS_BRANCH="no"
 
   if [ -n "${1}" ]; then
@@ -534,10 +558,12 @@ function find-grep() {
   fi
 }
 function git-force-push-branch {
-  if [ -z "$(git-is-current-branch master)" ]; then
+  local DEFAULT_BRANCH="$(git-default-branch-name)"
+
+  if [ -z "$(git-is-current-branch ${DEFAULT_BRANCH})" ]; then
     logCmnd git push -f origin "$(git-current-branch)"
   else
-    abort "No force push master!"
+    abort "No force push ${DEFAULT_BRANCH}!"
   fi
 }
 function git-smash {
@@ -552,12 +578,12 @@ function git-commit-smash {
 function git-resync-rebase {
   local START_BRANCH="$(git-current-branch)"
 
-  if [[ "master" != "${START_BRANCH}" ]]; then
-    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase master
+  if [[ "$(git-default-branch-name)" != "${START_BRANCH}" ]]; then
+    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase "$(git-default-branch-name)"
 
     return $?
   else
-    abort "On master, doing nothing."
+    abort "On $(git-default-branch-name), doing nothing."
   fi
 }
 function git-resync-rebase-push-branch {
@@ -634,7 +660,7 @@ function dhbackup {
   s3cmd-dh push 'b137124-pictures' || exit $?
 }
 function docker-ps-short {
-  docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Ports}}"
+  docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Ports}}\t{{.Status}}"
 }
 function rails-changed-tests {
   local CHANGED_FILES="$(git status -s | grep --invert "^D" | cut -c4- | grep ".*\.rb$")"
@@ -817,7 +843,7 @@ function git-record-branch-switch {
   local TO="${2}"
 
   if [ -n "${FROM}" ]; then
-    if [[ "master" != "${FROM}" ]]; then
+    if [[ "$(git-default-branch-name)" != "${FROM}" ]]; then
       git-branch-history add ${FROM}
     fi
   fi
