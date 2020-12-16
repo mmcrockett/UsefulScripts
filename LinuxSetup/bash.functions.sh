@@ -382,7 +382,6 @@ function processPodcasts() {
     logCmnd diskutil eject "${POD_PLAYER}"
   fi
 }
-
 function git-rm-merged-local-branches {
   local RM_BRANCHES="$(git branch --merged | grep "^\s*mcrockett")"
 
@@ -392,7 +391,8 @@ function git-rm-merged-local-branches {
   done
 }
 function git-default-branch-name {
-  local INFERRED_DEFAULT="$(git config --local --get-regexp branch 2> /dev/null | grep remote | cut -d '.' -f 2)"
+  local DEFAULT_LIST="master|main|development|production"
+  local INFERRED_DEFAULT="$(git config --local --get-regexp branch 2> /dev/null | grep remote | grep -E "(${DEFAULT_LIST})" | cut -d '.' -f 2)"
 
   if [ -n "${GIT_DEFAULT_BRANCH}" ]; then
     echo "${GIT_DEFAULT_BRANCH}"
