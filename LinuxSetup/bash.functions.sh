@@ -382,62 +382,6 @@ function processPodcasts() {
     logCmnd diskutil eject "${POD_PLAYER}"
   fi
 }
-function git-rm-merged-local-branches {
-  local RM_BRANCHES="$(git branch --merged | grep "^\s*mcrockett")"
-
-  for BRANCH in ${RM_BRANCHES}; do
-    git-branch-history rm ${BRANCH}
-    git branch -d ${BRANCH}
-  done
-}
-function git-default-branch-name {
-  local DEFAULT_LIST="master|main|development|production"
-  local INFERRED_DEFAULT="$(git config --local --get-regexp branch 2> /dev/null | grep remote | grep -E "(${DEFAULT_LIST})" | cut -d '.' -f 2)"
-
-  if [ -n "${GIT_DEFAULT_BRANCH}" ]; then
-    echo "${GIT_DEFAULT_BRANCH}"
-  elif [ -n "${INFERRED_DEFAULT}" ]; then
-    echo "${INFERRED_DEFAULT}"
-  else
-    echo "master"
-  fi
-}
-function git-handle-pr-merged {
-  local SCRIPT="${FUNCNAME[0]}"
-  local BRANCH="$(git-default-branch-name)"
-  local IS_FORK="$(git config --get remote.origin.url | grep "mcrockett")"
-
-  if [ -n "${1}" ]; then
-    BRANCH="${1}"
-  fi
-
-  logCmnd git checkout ${BRANCH} || return $?
-
-  if [ -z "${IS_FORK}" ]; then
-    logCmnd git pull
-  else
-    logCmnd git-resync-main-repo ${BRANCH} || return $?
-  fi
-
-  logCmnd git-rm-merged-local-branches || return $?
-}
-function git-resync-main-repo {
-  local SCRIPT="${FUNCNAME[0]}"
-  local BRANCH="$(git-default-branch-name)"
-  local IS_BRANCH="no"
-
-  if [ -n "${1}" ]; then
-    BRANCH="${1}"
-  fi
-
-  if [ -z "$(git-is-current-branch ${BRANCH})" ]; then
-    abort "Not on the ${BRANCH} branch."
-  else
-    logCmnd git fetch upstream || (echo "FIX try 'git remote add upstream git@github.com:Example/Sample.git'" && return $?)
-    logCmnd git pull upstream ${BRANCH} || return $?
-    logCmnd git push origin || return $?
-  fi
-}
 function undoPreviousJava {
   if [ -n "${JAVA_HOME}" ]; then
     export PATH="${PATH//${JAVA_HOME}}"
@@ -557,38 +501,6 @@ function find-grep() {
     logCmnd find ${_DIRECTORY} "${cond[@]}" -exec grep -${_GREPARGS} "${_GREP}" {} \;
   fi
 }
-function git-force-push-branch {
-  local DEFAULT_BRANCH="$(git-default-branch-name)"
-
-  if [ -z "$(git-is-current-branch ${DEFAULT_BRANCH})" ]; then
-    logCmnd git push -f origin "$(git-current-branch)"
-  else
-    abort "No force push ${DEFAULT_BRANCH}!"
-  fi
-}
-function git-smash {
-  logCmnd git rebase -i HEAD~${1:-2}
-}
-function git-commit-smash-push {
-  logCmnd git commit -m '...' . && git-smash && git-force-push-branch
-}
-function git-commit-smash {
-  logCmnd git commit -m '...' . && git-smash
-}
-function git-resync-rebase {
-  local START_BRANCH="$(git-current-branch)"
-
-  if [[ "$(git-default-branch-name)" != "${START_BRANCH}" ]]; then
-    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase "$(git-default-branch-name)"
-
-    return $?
-  else
-    abort "On $(git-default-branch-name), doing nothing."
-  fi
-}
-function git-resync-rebase-push-branch {
-  git-resync-rebase && git-force-push-branch
-}
 function isMac {
   local _UNAME="$(uname -s)"
 
@@ -659,9 +571,6 @@ function dhbackup {
   s3cmd-dh push 'b137124-documents' || exit $?
   s3cmd-dh push 'b137124-pictures' || exit $?
 }
-function docker-ps-short {
-  docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Ports}}\t{{.Status}}"
-}
 function rails-changed-tests {
   local CHANGED_FILES="$(git status -s | grep --invert "^D" | cut -c4- | grep ".*\.rb$")"
   local FILES_UNDER_TEST=""
@@ -715,47 +624,6 @@ function rails-retry-test {
     echo ""
   fi
 }
-function dockercompose-do {
-  if [ -f "${DOCKERCOMPOSE_FILE}" ]; then
-    docker-compose --file "${DOCKERCOMPOSE_FILE}" "${@}"
-  elif [ -d "${DOCKERCOMPOSE_HOME}" ]; then
-    local _PWD="${PWD}"
-    cd ${DOCKERCOMPOSE_HOME} && docker-compose "${@}"
-    local _RESULT=$?
-    cd ${_PWD}
-    return $_RESULT
-  else
-    echo 'Expected DOCKERCOMPOSE_HOME to be set.'
-    return 1
-  fi
-}
-function docker-start {
-  dockercompose-do up -d
-}
-function docker-start-rebuild {
-  dockercompose-do up --build -d
-}
-function docker-stop {
-  dockercompose-do down
-}
-function docker-restart {
-  docker-stop && docker-start && docker system prune -f
-}
-function docker-restart-rebuild {
-  docker-stop && docker-start-rebuild && docker system prune -f
-}
-function docker-switch-to-local-rails {
-  if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
-    local DOCKER_PID="$(docker ps -q --filter "name=.*app.*")"
-    local API_DIR="${WORKSPACE_HOME}/weinfuse_api"
-
-    if [ -n "${DOCKER_PID}" ]; then
-      docker kill ${DOCKER_PID} && rm ${API_DIR}/tmp/pids/server.pid
-    fi
-
-    cd ${API_DIR} && rails server --port 3000 --binding 0.0.0.0
-  fi
-}
 function ps-find {
   local NAME="${1}"
 
@@ -765,129 +633,6 @@ function ps-find {
     ps -A | grep "${NAME}" | grep --invert 'grep'
   fi
 }
-function list-docker-tags {
-  local NAMESPACE=$1
 
-  if [ -z "${NAMESPACE}" ]; then
-    echo "Need the namespace example 'library/debian'" && return 1
-  fi
-
-  command -v jq >/dev/null 2>&1
-
-  if [ "0" -eq "$?" ]; then
-    i=0
-
-    while [ $? == 0 ]; do 
-      i=$((i+1))
-      curl https://registry.hub.docker.com/v2/repositories/${NAMESPACE}/tags/?page=$i 2>/dev/null|jq '."results"[]["name"]'
-    done
-  else
-    abort 'Need jq installed.'
-  fi
-}
-function git-current-branch {
-  echo "$(git rev-parse --abbrev-ref HEAD)"
-}
-function git-branch-history {
-  if [ -d "${PWD}/.git" ]; then
-    local F="${PWD}/.git/CHECKOUT_HISTORY"
-    local C_M_D="${1}"
-    local BRANCH="${2}"
-    local R=""
-
-    if [[ "rm" != "${C_M_D}" ]] && [[ "add" != "${C_M_D}" ]] && [[ "last" != "${C_M_D}" ]]; then
-      abort "Unknown option git-branch-history ${C_M_D}"
-    fi
-
-    if [ ! -f "${F}" ]; then
-      touch "${F}"
-    fi
-
-    if [[ "rm" == "${C_M_D}" ]] || [[ "add" == "${C_M_D}" ]]; then
-      local T="$(mktemp)"
-
-      grep -v "${BRANCH}" "${F}" > "${T}"
-      mv "${T}" "${F}"
-    fi
-
-    if [[ "add" == "${C_M_D}" ]]; then
-      if [ -n "${BRANCH}" ]; then
-        echo "${BRANCH}" >> "${F}"
-      fi
-    fi
-
-    if [[ "last" == "${C_M_D}" ]]; then
-      local LAST=""
-
-      if [ -n "${BRANCH}" ]; then
-        LAST="$(grep -v "${BRANCH}" "${F}" | tail -n 1)"
-      else
-        LAST="$(tail -n 1 ${F})"
-      fi
-
-      echo "${LAST}"
-    fi
-  fi
-}
-function git-is-current-branch {
-  local BRANCH="${1}"
-
-  if [ -n "${BRANCH}" ]; then
-    echo "$(git branch | grep "^\*" | grep "${BRANCH}")"
-  else
-    echo ""
-  fi
-}
-function git-record-branch-switch {
-  local FROM="${1}"
-  local TO="${2}"
-
-  if [ -n "${FROM}" ]; then
-    if [[ "$(git-default-branch-name)" != "${FROM}" ]]; then
-      git-branch-history add ${FROM}
-    fi
-  fi
-
-  if [ -n "${TO}" ]; then
-    git-branch-history rm "${TO}"
-  fi
-}
-function git {
-  local GIT="$(which git)"
-  local GIT_CMD="${1}"
-  local GIT_OPT="${2}"
-
-  command -v ${GIT} >/dev/null 2>&1
-
-  if [ "0" -eq "$?" ]; then
-    if [[ "checkout" == ${GIT_CMD} ]]; then
-      local START_BRANCH="$(git-current-branch)"
-
-      if [[ "-" == ${GIT_OPT} ]]; then
-        local NEXT_BRANCH="$(git-branch-history last ${START_BRANCH})"
-
-        if [ -n "${NEXT_BRANCH}" ]; then
-          if [ -z "$(git-is-current-branch ${NEXT_BRANCH})" ]; then
-            ${GIT} checkout ${NEXT_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
-          else
-            echo "Already on branch ${NEXT_BRANCH}."
-          fi
-        else
-          echo "No history found."
-        fi
-      else
-        ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
-      fi
-    else
-      ${GIT} "${@}"
-
-      if [[ "branch" == ${GIT_CMD} ]] && [[ "" != "${3}" ]]; then
-        if [[ "-D" == ${GIT_OPT} ]] || [[ "-d" == ${GIT_OPT} ]]; then
-          git-branch-history rm ${3}
-        fi
-      fi
-    fi
-  else
-    abort "GIT not installed or set incorrectly '${GIT}'"
-  fi
-}
+source "${LINUX_SETUP_DIR}/git.functions.sh"
+source "${LINUX_SETUP_DIR}/docker.functions.sh"
