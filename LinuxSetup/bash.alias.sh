@@ -7,6 +7,12 @@ alias rake-no-warn='rake 2>&1 | grep -v "warning:"'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
 alias git-commit-wip='git add -A; git rm $(git ls-files --deleted) 2> /dev/null; git commit -m "--wip--"'
 alias git-commit-wip-no-hooks='git-commit-wip -n'
+alias ssh-add-hour='ssh-add -t 1H'
+alias ssh-add-day='ssh-add -t 1D'
+alias ssh-add-week='ssh-add -t 1W'
+alias rails-changed-tests-ff='rails-changed-tests --fail-fast'
+alias rails-test-ff='rails test --fail-fast'
+alias chrome-allow-cors="open -n -a /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --args --user-data-dir="/tmp/chrome_dev_test" --disable-web-security"
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(
