@@ -140,26 +140,38 @@ function packagesFromList() {
     shift
   done
 }
-alias mvim-no-opts='/usr/local/bin/mvim'
-alias mvim-single='mvim-no-opts --servername singlejunkyfunkymonkey --remote-silent ${@}'
-function mvim-tmp-rb {
-  local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX).rb"
-  mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
-}
-function mvim-tmp-json {
-  local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX).json"
-  mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
-}
-function mvim-tmp-js {
-  local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX).js"
-  mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
-}
-function mvim {
-  if [ "0" -eq "$#" ]; then
-    local TMPFILE="$(mktemp ~/tmp/mvim.tmp.XXXXXX)"
-    mvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+function gvim-no-opts {
+  if [ -n "${GVIM_NO_OPTS}" ]; then
+    ${GVIM_NO_OPTS}
   else
-    mvim-no-opts --servername $(basename ${PWD}) --remote-silent ${@}
+    abort "gvim location not set"
+  fi
+}
+function gvim-single {
+  if [ "0" -eq "$#" ]; then
+    gvim-no-opts --servername singlejunkyfunkymonkey --remote-silent ${@}
+  else
+    gvim
+  fi
+}
+function gvim-tmp-rb {
+  local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).rb"
+  gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+}
+function gvim-tmp-json {
+  local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).json"
+  gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+}
+function gvim-tmp-js {
+  local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).js"
+  gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+}
+function gvim {
+  if [ "0" -eq "$#" ]; then
+    local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX)"
+    gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+  else
+    gvim-no-opts --servername $(basename ${PWD}) --remote-silent ${@}
   fi
 }
 function sourceFromList() {

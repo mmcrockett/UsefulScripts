@@ -43,7 +43,9 @@ fi
 
 if [ -n "$(isMac)" ]; then
   softLinkFromList "${_SOFT_LINK_MAC_LIST[@]}"
-  #backupFromList -d "${_REPLACE_MAC_LIST[@]}"
+  export GVIM_NO_OPTS="/usr/local/bin/mvim"
+else
+  export GVIM_NO_OPS="/usr/bin/gvim"
 fi
 
 setupPrompt "green"
