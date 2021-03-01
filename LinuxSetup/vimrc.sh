@@ -93,6 +93,7 @@ endfunction
 command Jsonpp call JsonPPFunc()
 
 call plug#begin()
-Plug 'yuezk/vim-js'
-Plug 'maxmellon/vim-jsx-pretty'
+Plug 'sheerun/vim-polyglot'
+Plug 'arcticicestudio/nord-vim'
+Plug 'NLKNguyen/papercolor-theme'
 call plug#end()

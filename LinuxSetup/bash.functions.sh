@@ -140,38 +140,32 @@ function packagesFromList() {
     shift
   done
 }
-function gvim-no-opts {
-  if [ -n "${GVIM_NO_OPTS}" ]; then
-    ${GVIM_NO_OPTS}
-  else
-    abort "gvim location not set"
-  fi
-}
 function gvim-single {
   if [ "0" -eq "$#" ]; then
-    gvim-no-opts --servername singlejunkyfunkymonkey --remote-silent ${@}
+    ${GVIM_NO_OPTS} --servername singlejunkyfunkymonkey --remote-silent ${@}
   else
     gvim
   fi
 }
 function gvim-tmp-rb {
   local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).rb"
-  gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+  ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
 }
 function gvim-tmp-json {
   local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).json"
-  gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+  ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
 }
 function gvim-tmp-js {
   local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).js"
-  gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+  ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
 }
 function gvim {
   if [ "0" -eq "$#" ]; then
     local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX)"
-    gvim-no-opts --servername tmp --remote-silent "${TMPFILE}"
+    ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
   else
-    gvim-no-opts --servername $(basename ${PWD}) --remote-silent ${@}
+    echo "${@}"
+    ${GVIM_NO_OPTS} --servername "$(basename ${PWD})" --remote-silent "${@}"
   fi
 }
 function sourceFromList() {
@@ -523,7 +517,7 @@ function isMac {
   fi
 }
 function mikeplayer() {
-  local _DIRECTORY="/Users/mcrockett/DreamObjects/b137124-music/"
+  local _DIRECTORY="${HOME}/DreamObjects/b137124-music/"
   local _VOLUME=0.5
   MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
 }
