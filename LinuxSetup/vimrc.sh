@@ -91,6 +91,9 @@ function JsonPPFunc()
 endfunction
 
 command Jsonpp call JsonPPFunc()
+set synmaxcol=320 "Vim won't crash long lines because we stop syntax
+
+nnoremap <C-W><C-E> <C-W><C-K>
 
 call plug#begin()
 Plug 'sheerun/vim-polyglot'

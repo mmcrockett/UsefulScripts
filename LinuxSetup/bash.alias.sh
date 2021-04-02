@@ -13,6 +13,10 @@ alias ssh-add-week='ssh-add -t 1W'
 alias rails-changed-tests-ff='rails-changed-tests --fail-fast'
 alias rails-test-ff='rails test --fail-fast'
 alias chrome-allow-cors="open -n -a /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --args --user-data-dir="/tmp/chrome_dev_test" --disable-web-security"
+alias chrome-allow-cors='/usr/bin/google-chrome-stable --args --disable-web-security --user-data-dir=/tmp/chrome_dev_test'
+alias mvim='gvim'
+alias pbcopy='xsel --primary'
+alias increase-fd='sudo sysctl -w fs.inotify.max_user_watches=20000 && sudo sysctl -p'
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(

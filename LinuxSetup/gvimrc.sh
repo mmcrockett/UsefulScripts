@@ -1,6 +1,6 @@
 set background=light
-colorscheme nord
-"colorscheme PaperColor
+"colorscheme nord
+colorscheme PaperColor
 
 set guifont=Inconsolata\ Medium\ 10
 set guioptions-=m "remove menu bar

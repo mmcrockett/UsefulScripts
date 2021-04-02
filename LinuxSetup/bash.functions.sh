@@ -455,7 +455,7 @@ function find-grep() {
     -g <grepargs> Defaults to -IH.
        <directory> Defaults to PWD.'
 
-  for (( OPTIND=0; OPTIND <= ${#@}; ++i )); do
+  for (( OPTIND=0; OPTIND <= ${#@}; OPTIND )); do
     while getopts "n:g:" option; do
       case "${option}" in
         n)
