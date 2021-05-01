@@ -299,12 +299,27 @@ function trim() {
     echo "${STRIPPED_STRING}"
   fi
 }
-function emptyCamera() {
-  local SCRIPT="${FUNCNAME[0]}"
-  local VOLUMES=("CANONEOS" "GECamera" "Picasa 3")
+function getCameraVolumes() {
+  if [ -n "$(isMac)" ]; then
+    local VOLUMES=("CANONEOS" "GECamera" "Picasa 3")
+    local LOC="/Volumes/"
+  else
+    local VOLUMES=("5BA4-EC5B" "CAT")
+    local LOC="/run/media/${USER}/"
+  fi
+  local FVOLUMES=""
 
   for VOLUME in "${VOLUMES[@]}"; do
-    local FULL_VOLUME="/Volumes/${VOLUME}"
+    FVOLUMES="${FVOLUMES} ${LOC}/${VOLUME}"
+  done
+
+  echo "${FVOLUMES}"
+}
+function emptyCamera() {
+  local SCRIPT="${FUNCNAME[0]}"
+  local FULL_VOLUMES="$(getCameraVolumes)"
+
+  for FULL_VOLUME in $FULL_VOLUMES; do
     local VOLUME_DIR="${FULL_VOLUME}/DCIM"
     local DATE_FORMAT="$(date "+%Y%m%d")"
 
@@ -322,7 +337,11 @@ function emptyCamera() {
         logArgs "Path on device not as expected '${VOLUME_DIR}'."
       fi
 
-      logCmnd diskutil eject "${FULL_VOLUME}"
+      if [ -n "$(isMac)" ]; then
+        logCmnd diskutil eject "${FULL_VOLUME}"
+      else
+        logCmnd eject "${FULL_VOLUME}"
+      fi
     else
       logArgs "Device not connected '${FULL_VOLUME}'."
     fi
