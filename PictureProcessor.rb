@@ -12,10 +12,16 @@ class PictureProcessor
     @grouping_size = options[:grouping_n] || DEFAULT_GROUP_N
     @indir         = options[:indir]
     @outdir        = options[:outdir]
+    @command_type  = nil
 
     raise 'Bad indir' unless Dir.exist?(@indir)
     raise 'Bad outdir' unless Dir.exist?(@outdir)
-    raise 'Requires sips installation' unless system("sips --help #{devnull}")
+
+    %w[sips convert].each do |cmd|
+      @command_type = cmd if system("#{cmd} --help #{devnull}")
+    end
+
+    raise 'Requires sips or imagemagick installation' if @command_type.nil?
   end
 
   def process
@@ -50,10 +56,18 @@ class PictureProcessor
     return Dir.glob(File.join(@indir, '**', '*.jpg'), File::FNM_CASEFOLD)
   end
 
+  def sips(new_name, original)
+    ['sips', '-Z', '800', '--out', new_name, original] * ' '
+  end
+
+  def convert(new_name, original)
+    ['convert', original, '-resize', '800x800', new_name] * ' '
+  end
+
   def resize(picture)
     parts = file_parts(picture)
     name  = parts.name + '.resize' + parts.ext
-    cmd   = ['sips', '-Z', '800', '--out', name, picture, devnull] * ' '
+    cmd   = send(@command_type, name, picture)
 
     if (File.file?(name))
       puts "Skipping '#{picture}', already exists."

@@ -310,7 +310,7 @@ function emptyCamera() {
 
     if [ -d "${FULL_VOLUME}" ]; then
       if [ -d "${VOLUME_DIR}" ]; then
-        local NEW_DIRECTORY="/Users/mcrockett/Camera/${DATE_FORMAT}"
+        local NEW_DIRECTORY="${HOME}/Camera/${DATE_FORMAT}"
 
         if [ ! -d "${NEW_DIRECTORY}" ]; then
           logCmnd mkdir -p ${NEW_DIRECTORY}

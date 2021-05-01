@@ -1,6 +1,7 @@
 [user]
-  name = Mike Crockett
+	name = mike crockett
   useConfigOnly = true
+	email = github@mmcrockett.com
 [push]
   default = current
 [core]
