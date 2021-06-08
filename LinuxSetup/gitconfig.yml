@@ -9,7 +9,6 @@
   autocrlf = input
   safecrlf = warn
   whitespace = tab-in-indent
-  hooksPath = /Users/mcrockett/.git/hooks
 [alias]
   hist     = log --graph --pretty=format:'%C(auto)%h %s %C(Cyan)%an %C(green)%ar %C(auto)%d' -n 20
   hist-all = log --graph --pretty=format:'%C(auto)%h %s %C(Cyan)%an %C(green)%ar %C(auto)%d'
