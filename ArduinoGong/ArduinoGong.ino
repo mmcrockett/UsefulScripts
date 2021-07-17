@@ -15,7 +15,7 @@
 #define MAX_HASH_SIZE 64
 
 #define STORAGE_ADDRESS 0
-#define SERIAL_CONNECTED true
+//#define SERIAL_CONNECTED true
 
 char ssid[] = SECRET_SSID_W;
 char pass[] = SECRET_PASS_W;
@@ -106,6 +106,8 @@ void httpRequest() {
 
   httpStatus = client.responseStatusCode();
   String response = client.responseBody();
+
+  client.get("/?returnedStatus=" + httpStatus + "&previousHash=" + lastHash + "&nextHash=" + response + "&different=" + (lastHash != response));
 
   if (HTTP_OK == httpStatus && lastHash != response) {
     writeEString(STORAGE_ADDRESS, response);
