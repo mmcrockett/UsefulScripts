@@ -24,6 +24,7 @@ char pass[] = SECRET_PASS_W;
 #define HTTP_OK 200
 
 int httpStatus = HTTP_OK;
+int wifiStatus = WL_IDLE_STATUS;
 
 WiFiClient wifi;
 Servo servo;
@@ -34,13 +35,15 @@ String lastHash;
 HttpClient client = HttpClient(wifi, server, 80);
 
 void attachWifi() {
-  while (WL_CONNECTED != WiFi.status()) {
+  while (WL_CONNECTED != wifiStatus) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
 
     WiFi.begin(ssid, pass);
 
     delay(ONE_SECOND * 30L);
+
+    wifiStatus = Wifi.status();
   }
 
   printWifiStatus();
@@ -80,6 +83,8 @@ void loop() {
     digitalWrite(LED_BUILTIN, HIGH);
 
     WiFi.end();
+
+    wifiStatus = WL_IDLE_STATUS;
 
     Serial.print("Error: ");
     Serial.println(httpStatus);
