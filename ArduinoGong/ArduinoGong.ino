@@ -24,7 +24,6 @@ char pass[] = SECRET_PASS_W;
 #define HTTP_OK 200
 
 int httpStatus = HTTP_OK;
-int wifiStatus = WL_IDLE_STATUS;
 
 WiFiClient wifi;
 Servo servo;
@@ -35,6 +34,8 @@ String lastHash;
 HttpClient client = HttpClient(wifi, server, 80);
 
 void attachWifi() {
+  int wifiStatus = WL_IDLE_STATUS;
+
   while (WL_CONNECTED != wifiStatus) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
@@ -43,8 +44,12 @@ void attachWifi() {
 
     delay(ONE_SECOND * 30L);
 
-    wifiStatus = Wifi.status();
+    wifiStatus = WiFi.status();
   }
+
+  client = HttpClient(wifi, server, 80);
+
+  delay(ONE_SECOND * 5L);
 
   printWifiStatus();
 }
@@ -77,14 +82,12 @@ void loop() {
   Serial.print("Current hash: ");
   Serial.println(lastHash);
   
-  httpRequest();
+  unsigned int httpStatus = httpRequest();
 
   if (HTTP_OK != httpStatus) {
     digitalWrite(LED_BUILTIN, HIGH);
 
     WiFi.end();
-
-    wifiStatus = WL_IDLE_STATUS;
 
     Serial.print("Error: ");
     Serial.println(httpStatus);
@@ -111,10 +114,10 @@ void hitGong() {
   servo.detach();
 }
 
-void httpRequest() {
+unsigned int httpRequest() {
   client.get("/");
 
-  httpStatus = client.responseStatusCode();
+  unsigned int httpStatus = client.responseStatusCode();
   String response = client.responseBody();
 
   if (HTTP_OK == httpStatus) {
@@ -138,6 +141,8 @@ void httpRequest() {
       hitGong();
     }
   }
+
+  return httpStatus;
 }
 
 void writeEString(char loc,String data)
