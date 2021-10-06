@@ -142,26 +142,26 @@ function packagesFromList() {
 }
 function gvim-single {
   if [ "0" -eq "$#" ]; then
-    ${GVIM_NO_OPTS} --servername singlejunkyfunkymonkey --remote-silent ${@}
-  else
     gvim
+  else
+    ${GVIM_NO_OPTS} --servername singlejunkyfunkymonkey --remote-silent ${@}
   fi
 }
 function gvim-tmp-rb {
-  local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).rb"
+  local TMPFILE="$(mktemp ~/tmp/XXXXXX.gvim.rb)"
   ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
 }
 function gvim-tmp-json {
-  local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).json"
+  local TMPFILE="$(mktemp ~/tmp/XXXXXX.gvim.json)"
   ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
 }
 function gvim-tmp-js {
-  local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX).js"
+  local TMPFILE="$(mktemp ~/tmp/XXXXXX.gvim.js)"
   ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
 }
 function gvim {
   if [ "0" -eq "$#" ]; then
-    local TMPFILE="$(mktemp ~/tmp/gvim.tmp.XXXXXX)"
+    local TMPFILE="$(mktemp ~/tmp/XXXXXX.gvim.txt)"
     ${GVIM_NO_OPTS} --servername tmp --remote-silent "${TMPFILE}"
   else
     echo "${@}"
