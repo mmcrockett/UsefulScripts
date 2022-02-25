@@ -37,6 +37,25 @@ function git-handle-pr-merged {
 
   logCmnd git-rm-merged-local-branches || return $?
 }
+function git-rebase-all {
+  local MAIN_BRANCH="$(git-default-branch-name)"
+
+  logCmnd git-handle-pr-merged ${MAIN_BRANCH} || return $?
+
+  local REBASE_BRANCHES="$(git branch --list 'mcrockett*')"
+
+  for BRANCH in ${REBASE_BRANCHES}; do
+    export GIT_HOOKS_OFF="TRUE"
+    logCmnd git checkout ${BRANCH} && git rebase "${MAIN_BRANCH}" || return $?
+    unset GIT_HOOKS_OFF
+  done
+
+  logCmnd git checkout ${MAIN_BRANCH}
+}
+function git-rebase-rm-all {
+  git-rebase-all
+  git-rm-merged-local-branches
+}
 function git-resync-main-repo {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="$(git-default-branch-name)"
@@ -79,7 +98,7 @@ function git-resync-rebase {
 
   if [[ "$(git-default-branch-name)" != "${START_BRANCH}" ]]; then
     export GIT_HOOKS_OFF="TRUE"
-    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase "$(git-default-branch-name)"
+    git-handle-pr-merged && git checkout ${START_BRANCH} && git rebase "$(git-default-branch-name)" || return $?
     unset GIT_HOOKS_OFF
 
     return $?
@@ -183,6 +202,8 @@ function git {
       else
         ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
       fi
+    elif [[ "home" == ${GIT_CMD} ]]; then
+      git checkout "$(git-default-branch-name)"
     else
       ${GIT} "${@}"
 
