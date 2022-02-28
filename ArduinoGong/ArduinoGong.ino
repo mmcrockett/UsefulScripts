@@ -23,8 +23,6 @@ char pass[] = SECRET_PASS_W;
 
 #define HTTP_OK 200
 
-int httpStatus = HTTP_OK;
-
 WiFiClient wifi;
 Servo servo;
 
@@ -81,7 +79,7 @@ void setup() {
 void loop() {
   Serial.print("Current hash: ");
   Serial.println(lastHash);
-  
+
   unsigned int httpStatus = httpRequest();
 
   if (HTTP_OK != httpStatus) {
@@ -115,12 +113,15 @@ void hitGong() {
 }
 
 unsigned int httpRequest() {
-  client.get("/");
+  if (WL_CONNECTED != WiFi.status()) {
+    return -1;
+  } else {
+    client.get("/");
 
-  unsigned int httpStatus = client.responseStatusCode();
-  String response = client.responseBody();
+    unsigned int httpStatus = client.responseStatusCode();
+    String response = client.responseBody();
 
-  if (HTTP_OK == httpStatus) {
+    // Log to server for debugging
     String data = "/?returnedStatus=";
     data.concat(httpStatus);
     data.concat("&previousHash=");
@@ -129,20 +130,25 @@ unsigned int httpRequest() {
     data.concat(response);
     data.concat("&different=");
     data.concat(lastHash != response);
+    data.concat("&signal=");
+    data.concat(WiFi.RSSI());
 
     client.get(data);
+    // Done logging to server
 
-    if (lastHash != response) {
-      writeEString(STORAGE_ADDRESS, response);
-      lastHash = response;
+    if (HTTP_OK == httpStatus) {
+      if (lastHash != response) {
+        writeEString(STORAGE_ADDRESS, response);
+        lastHash = response;
 
-      delay(ONE_SECOND * 5L);
+        delay(ONE_SECOND * 5L);
 
-      hitGong();
+        hitGong();
+      }
     }
-  }
 
-  return httpStatus;
+    return httpStatus;
+  }
 }
 
 void writeEString(char loc,String data)
