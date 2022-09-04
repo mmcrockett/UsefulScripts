@@ -8,6 +8,7 @@
 #define SERVO_PIN 9
 #define SERVO_START 135
 #define SERVO_END 45
+#define SERVO_REST 80
 #define ONE_SECOND 1000L
 #define ONE_MINUTE ONE_SECOND * 60L
 #define RESET_DELAY 500L
@@ -106,7 +107,7 @@ void hitGong() {
   delay(RESET_DELAY_L);
   servo.write(SERVO_END);
   delay(RESET_DELAY);
-  servo.write(SERVO_START);
+  servo.write(SERVO_REST);
   delay(RESET_DELAY_L);
 
   servo.detach();

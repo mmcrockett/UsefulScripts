@@ -11,3 +11,5 @@ set lines=180 columns=160
 vmap <C-S-x> "+x
 vmap <C-S-c> "+y
 imap <C-S-v> <Esc>"+gP
+map <M-F1> <Esc>
+imap <M-F1> <Esc>

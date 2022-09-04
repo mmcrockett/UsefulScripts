@@ -9,7 +9,7 @@ function logArgs { echo 1>&2 "${SCRIPT}:" "${@}"; }
 function warning { echo 1>&2 "${SCRIPT}:!WARNING:" "${@}"; }
 function setupGit {
   local REQUIRED_FILES=(
-    ".ssh/github.rsa"
+    ".ssh/github20220117"
     ".ssh/config"
   )
   local FILE_MISSING=""

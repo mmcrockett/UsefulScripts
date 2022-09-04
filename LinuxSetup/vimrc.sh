@@ -71,7 +71,7 @@ set incsearch       " incremental search
 set ignorecase      " ignores case when searching
 set smartcase       " respects case if search string contains uppercase chars
 set hlsearch        " highlights search results
-set hl+=l:Visual
+" set hl+=l:Visual
 set wildmode=longest,list
 set t_Co=256
 
@@ -90,7 +90,16 @@ function JsonPPFunc()
   execute "normal gg=G"
 endfunction
 
+function SetFont(n)
+  execute ':set guifont=Inconsolata\ Medium\ ' . a:n
+endfunction
+
 command Jsonpp call JsonPPFunc()
+command RegularFont call SetFont(10)
+command BigFont call SetFont(12)
+command BiggerFont call SetFont(14)
+command BiggestFont call SetFont(16)
+command BiggerestFont call SetFont(18)
 set synmaxcol=320 "Vim won't crash long lines because we stop syntax
 
 nnoremap <C-W><C-E> <C-W><C-K>

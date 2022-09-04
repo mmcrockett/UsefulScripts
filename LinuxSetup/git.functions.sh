@@ -11,7 +11,7 @@ function git-default-branch-name {
   fi
 }
 function git-rm-merged-local-branches {
-  local RM_BRANCHES="$(git branch --merged | grep "^\s*mcrockett")"
+  local RM_BRANCHES="$(git branch --merged | grep "^\s.*mcrockett")"
 
   for BRANCH in ${RM_BRANCHES}; do
     git-branch-history rm ${BRANCH}
@@ -42,7 +42,7 @@ function git-rebase-all {
 
   logCmnd git-handle-pr-merged ${MAIN_BRANCH} || return $?
 
-  local REBASE_BRANCHES="$(git branch --list 'mcrockett*')"
+  local REBASE_BRANCHES="$(git branch --list '*mcrockett*')"
 
   for BRANCH in ${REBASE_BRANCHES}; do
     export GIT_HOOKS_OFF="TRUE"

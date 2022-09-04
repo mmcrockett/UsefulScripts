@@ -1,7 +1,7 @@
 [user]
-	name = mike crockett
+  name = mike crockett
   useConfigOnly = true
-	email = github@mmcrockett.com
+  email = github@mmcrockett.com
 [push]
   default = current
 [core]
@@ -16,3 +16,5 @@
   tool = gvimdiff
 [difftool]
   prompt = false
+[merge]
+  tool = meld

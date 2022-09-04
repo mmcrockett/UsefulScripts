@@ -649,6 +649,38 @@ function rails-retry-test {
     echo ""
   fi
 }
+yarn-changed-tests () 
+{ 
+    local CHANGED_FILES="$(git status -s | grep --invert "^D" | cut -c4- | grep ".*\.js\|jsx$")";
+    local FILES_UNDER_TEST="";
+    local RENAME="FALSE";
+    for FILE in ${CHANGED_FILES};
+    do
+        if [[ "->" == "${FILE}" ]]; then
+            RENAME="TRUE";
+        else
+            local TEST_FILE="${FILE}";
+            if [[ "TRUE" == ${RENAME} ]]; then
+                RENAME="FALSE";
+                FILES_UNDER_TEST="${FILES_UNDER_TEST% *}";
+            fi;
+            if [ "${FILE%*.test.*}" == "${FILE}" ]; then
+                TEST_FILE="${FILE/app/test}";
+                TEST_FILE="${TEST_FILE/.js/.test.js}";
+            fi;
+            if [ -f "${TEST_FILE}" ]; then
+                if [ "${FILES_UNDER_TEST%*${TEST_FILE}}" == "${FILES_UNDER_TEST}" ]; then
+                    FILES_UNDER_TEST="${FILES_UNDER_TEST} ${TEST_FILE}";
+                fi;
+            fi;
+        fi;
+    done;
+    if [ -n "${FILES_UNDER_TEST}" ]; then
+        logCmnd yarn test ${FILES_UNDER_TEST} ${@};
+    else
+        echo "Didn't find any changes.";
+    fi
+}
 function ps-find {
   local NAME="${1}"
 
@@ -659,5 +691,5 @@ function ps-find {
   fi
 }
 
-source "${LINUX_SETUP_DIR}/git.functions.sh"
-source "${LINUX_SETUP_DIR}/docker.functions.sh"
+[[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
+[[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"
