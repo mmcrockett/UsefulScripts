@@ -112,4 +112,18 @@ class TollChecker
 
     !@invoice_line.nil? && @invoice_line.size > 60
   end
+
+  def self.new_bills?
+    bills = []
+ 
+    ENV['LICENSES'].split(' ').each do |lp|
+      next unless TollChecker.new(license: lp).new_bill?
+
+      bills << "https://ct.rmatoll.com/Violator/ViewAllInvoices?VehicleNumber=#{lp}"
+    end
+
+    raise "New bills!: #{bills.join("\n")}" unless bills.empty?
+  end
 end
+
+TollChecker.new_bills?
