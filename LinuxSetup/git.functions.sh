@@ -11,7 +11,7 @@ function git-default-branch-name {
   fi
 }
 function git-rm-merged-local-branches {
-  local RM_BRANCHES="$(git branch --merged | grep "^\s.*mcrockett")"
+  local RM_BRANCHES="$(git branch --merged | grep "^\s.*mcrockett" | grep -v ".*[^0-9]\+]")"
 
   for BRANCH in ${RM_BRANCHES}; do
     git-branch-history rm ${BRANCH}
@@ -217,3 +217,18 @@ function git {
     abort "GIT not installed or set incorrectly '${GIT}'"
   fi
 }
+function git-take-rebase-commit {
+  local FILE_TO_PICK="${1}"
+
+  if [ -s "${FILE_TO_PICK}" ]; then
+    logCmnd git checkout --ours ${FILE_TO_PICK} && git add ${FILE_TO_PICK}
+  fi
+}
+function git-setup-scm-breeze {
+  command -v ${GIT} >/dev/null 2>&1
+
+  if [ "0" -eq "$?" ]; then
+    alias gh='git checkout "$(git-default-branch-name)"'
+  fi
+}
+git-setup-scm-breeze
