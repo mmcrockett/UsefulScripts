@@ -246,6 +246,7 @@ function resizeImages() {
   local SCRIPT="${FUNCNAME[0]}"
   local DIRECTORY="${1}"
   local MAXSIZE="${2}"
+  local RESIZEDIR="${DIRECTORY}/resized"
 
   if [ -z "${MAXSIZE}" ]; then
     MAXSIZE=800;
@@ -253,10 +254,25 @@ function resizeImages() {
 
   directoryExists "${DIRECTORY}" || return 1
 
-  logCmnd mkdir -p ${DIRECTORY}/resized
-  logCmnd rename -f 's/\.JPG$/.jpg/' ${DIRECTORY}/*.JPG
-  logCmnd cp ${DIRECTORY}/*.jpg ${DIRECTORY}/resized
-  logCmnd sips -Z $MAXSIZE ${DIRECTORY}/resized/*.jpg
+  logCmnd mkdir -p ${RESIZEDIR}
+
+  if [ -n "$(isMac)" ]; then
+    logCmnd rename -f 's/\.JPG$/.jpg/' ${DIRECTORY}/*.JPG
+  else
+    logCmnd rename .JPG .jpg ${DIRECTORY}/*.JPG
+  fi
+
+  logCmnd cp ${DIRECTORY}/*.jpg ${RESIZEDIR}
+
+  if [ -n "$(isMac)" ]; then
+    logCmnd sips -Z $MAXSIZE ${RESIZEDIR}/*.jpg
+  else
+    for filename in ${RESIZEDIR}/*.jpg; do
+      local FILENAMEONLY="${filename##*/}"
+      local FILENAMENOEXT="${FILENAMEONLY%.jpg}"
+      logCmnd magick "${filename}" -resize '480000@' "${RESIZEDIR}/${FILENAMENOEXT}.resized.jpg"
+    done
+  fi
 }
 
 function removeUnwantedCharacters() {

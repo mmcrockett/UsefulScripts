@@ -200,7 +200,7 @@ function git {
           echo "No history found."
         fi
       else
-        ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
+        exec_scmb_expand_args ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
       fi
     elif [[ "home" == ${GIT_CMD} ]]; then
       git checkout "$(git-default-branch-name)"
