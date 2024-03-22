@@ -1,0 +1,22 @@
+#!/bin/bash
+
+APP_NAME="${1}"
+
+if [ -n "${APP_NAME}" ]; then
+  DTAG="$(TZ='America/Chicago' date +%F)"
+  TAG="${APP_NAME}:${DTAG}"
+  TAR_FILE="${APP_NAME}.${DTAG}.tar"
+  APP_DIR="/var/www/${APP_NAME}"
+  TAR_FILE_LOC="${APP_DIR}/${TAR_FILE}"
+  MAP_PORT="$(cat ${APP_DIR}/.port)"
+
+  wget --quiet --show-progress --output-document "${TAR_FILE_LOC}" "http://mmcrockett.com/${TAR_FILE}" && \
+    sudo docker load --input "${TAR_FILE_LOC}" && \
+    mv "${TAR_FILE_LOC}" "${TAR_FILE_LOC}.loaded" && \
+    sudo docker create --name ${APP_NAME} -p ${MAP_PORT}:3000 -v ${APP_NAME}-logs:/var/www/${APP_NAME}/log/ "${TAG}" && \
+    (sudo docker stop "${APP_NAME}" || true) && \
+    sudo docker system prune -f -a && \
+    sudo docker start ${APP_NAME}
+else
+  echo 'Requires arg for app name'
+fi

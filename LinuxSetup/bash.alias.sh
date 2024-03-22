@@ -18,6 +18,7 @@ alias mvim='gvim'
 alias pbcopy='xsel --primary'
 alias increase-fd='sudo sysctl -w fs.inotify.max_user_watches=20000 && sudo sysctl -p'
 alias bluebg="echo -ne '\e]11;#111140\e\\'"
+alias greybg="echo -ne '\e]11;#333340\e\\'"
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(
