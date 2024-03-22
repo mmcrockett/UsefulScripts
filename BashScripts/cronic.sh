@@ -76,4 +76,8 @@ if [ $RESULT -ne 0 -o -s "$ERR" -o -n "${FORCE}" ]; then
   fi
 fi
 
-rm -rf "$TMP"
+if [ $RESULT -ne 0 -o -s "$ERR" ]; then
+  mv "$TMP" "/tmp/cronic.log.$(TZ='America/Chicago' date +%F )"
+else
+  rm "$TMP"
+fi
