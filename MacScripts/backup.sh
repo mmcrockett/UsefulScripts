@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "/Users/mcrockett/UsefulScripts.mmcrockett/LinuxSetup/bash.functions.sh"
+source "${HOME}/UsefulScripts.mmcrockett/LinuxSetup/bash.functions.sh"
 
 DESKTOP="${HOME}/Desktop"
 DATESTAMP="$(date "+%Y%m%d")"
@@ -8,14 +8,15 @@ DATESTAMP="$(date "+%Y%m%d")"
 OUT_LOG="/Users/mcrockett/launchctl.backupsh.err"
 ERROR_LOG="/Users/mcrockett/launchctl.backupsh.out"
 
-RSYNC_FF_SRC="${HOME}/Library/Application Support/Firefox/Profiles/rajkkxt0.default"
+if [ -n "$(isMac)" ]; then
+  RSYNC_FF_SRC="${HOME}/Library/Application Support/Firefox/Profiles/rajkkxt0.default"
+else
+  RSYNC_FF_SRC="${HOME}/.mozilla/firefox/rajkkxt0.default"
+fi
 RSYNC_FF_DEST="/home/washingrving/FirefoxProfile"
 
-RSYNC_TB_SRC="${HOME}/Library/Thunderbird/Profiles/ec3jwxfs.default"
-RSYNC_TB_DEST="/home/washingrving/ThunderbirdProfile"
-
 GNUCASH_LOCATION="${HOME}/DreamObjects/b137124-documents"
-GNUCASH_BACKUP_LOCATION="/tmp/MikeAccounts.${DATESTAMP}.gnucash"
+GNUCASH_BACKUP_LOCATION="/tmp/MikeAccounts.${DATESTAMP}.gnucash.xml"
 
 function failfile {
   local FILE="${DESKTOP}/${1}-${DATESTAMP}.launchctl.failed.txt"
@@ -30,7 +31,7 @@ function failfile {
 function successfile {
   local FILE="${DESKTOP}/${DATESTAMP}.launchctl.success.txt"
 
-  find ${DESKTOP} -name "*launchctl.success.txt" -mtime '+5d' -exec rm -rf {} \;
+  find ${DESKTOP} -name "*launchctl.success.txt" -mtime '+5' -exec rm -rf {} \;
   touch "${FILE}"
 
   if [ -f "${OUT_LOG}" ]; then
@@ -38,9 +39,8 @@ function successfile {
   fi
 }
 
-find ${GNUCASH_LOCATION} -name "*.log" -mtime '+10d' -exec rm -rf {} \; || failfile "remove_gnucash_logs"
-cp ${GNUCASH_LOCATION}/MikeAccounts.gnucash ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
+find ${GNUCASH_LOCATION} -name "*.log" -mtime '+10' -exec rm -rf {} \; || failfile "remove_gnucash_logs"
+cp ${GNUCASH_LOCATION}/MikeAccounts.gnucash.xml ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
 dhbackup || failfile "dreamobjects_sync"
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_FF_SRC}" washingrving@mmcrockett.com:${RSYNC_FF_DEST} || failfile "rsync_firefox"
-rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_TB_SRC}" washingrving@mmcrockett.com:${RSYNC_TB_DEST} || failfile "rsync_thunderbird"
 successfile
