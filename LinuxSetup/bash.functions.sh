@@ -583,8 +583,20 @@ function rake-single {
 }
 function s3cmd-dh {
   local CMD="${1}"
-  local DIRECTORY="${HOME}/DreamObjects/${2}/"
-  local REMOTE="s3://${2}/"
+  local BUCKET="${2}"
+  local PREFIX="b137124"
+
+  if [ -z ${BUCKET} ]; then
+    echo "Fail: requires name of the bucket"
+    return 1
+  fi
+
+  if [ ${BUCKET##${PREFIX}} == ${BUCKET} ]; then
+    BUCKET="${PREFIX}-${BUCKET}"
+  fi
+
+  local DIRECTORY="${HOME}/DreamObjects/${BUCKET}/"
+  local REMOTE="s3://${BUCKET}/"
   local CMD_PARAMS=""
 
   if [[ get == ${CMD} ]]; then
@@ -592,20 +604,18 @@ function s3cmd-dh {
       logCmnd mkdir -p "${DIRECTORY}"
     fi
 
-    CMD_PARAMS="${REMOTE} ${DIRECTORY}"
+    logCmnd s3cmd sync --skip-existing --cache /tmp/s3-${BUCKET}-cache ${REMOTE} ${DIRECTORY}
   elif [[ push == ${CMD} ]]; then
     if  [ ! -d "${DIRECTORY}" ]; then
       echo "Fail: Can't find directory '${DIRECTORY}'"
       return 1
     fi
 
-    CMD_PARAMS="${DIRECTORY} ${REMOTE}"
+    logCmnd s3cmd sync --no-delete-removed --no-preserve --exclude "*.log" --rexclude "^\." --rexclude "\/\." ${DIRECTORY} ${REMOTE}
   else
     echo "Fail: not a command '${CMD}'"
     return 1
   fi
-
-  logCmnd s3cmd sync --no-delete-removed --no-preserve --exclude "*.log" --rexclude "^\." --rexclude "\/\." ${CMD_PARAMS}
 }
 function dhbackup {
   s3cmd-dh push 'b137124-music' || exit $?

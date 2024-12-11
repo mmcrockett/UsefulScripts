@@ -24,7 +24,7 @@ readonly _SOFT_LINK_LIST=(
 )
 
 readonly _SOFT_LINK_MAC_LIST=(
-  "${MAC_SETUP_DIR}/com.mcrockett.backup.plist:${HOME}/Library/LaunchAgents/com.mcrockett.backup.plist"
+  # "${MAC_SETUP_DIR}/com.mcrockett.backup.plist:${HOME}/Library/LaunchAgents/com.mcrockett.backup.plist"
 )
 
 readonly _REPLACE_MAC_LIST=(
@@ -43,7 +43,7 @@ fi
 
 if [ -n "$(isMac)" ]; then
   softLinkFromList "${_SOFT_LINK_MAC_LIST[@]}"
-  export GVIM_NO_OPTS="/usr/local/bin/mvim"
+  export GVIM_NO_OPTS="/opt/homebrew/Cellar/macvim/9.1.0727/bin/mvim"
 else
   export GVIM_NO_OPTS="/usr/bin/gvim"
 fi

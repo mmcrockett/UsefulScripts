@@ -4,7 +4,8 @@ require 'byebug'
 require 'fileutils'
 
 class RingerPodcastParser
-  PLAYER_MOUNT = '/run/media/mcrockett/Q7S/'
+  #PLAYER_MOUNT = '/run/media/mcrockett/Q7S/'
+  PLAYER_MOUNT = '/Volumes/Q7S/'
 
   def reader_api
     @response_json ||= HTTParty.get(
@@ -28,7 +29,7 @@ class RingerPodcastParser
   end
 
   def process
-    filename = find_title.split(':').last.strip.gsub(/\W/, '')
+    filename = find_title.split(':').last.strip.gsub(/\W/, '')[0..16]
     filename = "/tmp/#{filename.split('on').first}"
     filenamefull = "#{filename}.mp3"
 
@@ -54,14 +55,21 @@ class RingerPodcastParser
 
     puts
     puts "Successful: #{filenamefull}"
-    puts 'Splitting...'
+    print 'Splitting...'
 
     raise 'Failed to split' if false == system("mp3splt -S 3 -o @f@n2 -Q #{filenamefull}")
 
-    FileUtils.rm_f(filenamefull) if File.exist?(filenamefull)
+    puts 'done'
 
-    Dir.glob("#{filename}0*.mp3").each do |file|
-      FileUtils.mv(file, PLAYER_MOUNT) if Dir.exist?(PLAYER_MOUNT)
+    FileUtils.rm_f(filenamefull) if File.exist?(filenamefull)
+    puts "Removed #{filenamefull}"
+ 
+    if Dir.exist?(PLAYER_MOUNT)
+      Dir.glob("#{filename}0*.mp3").each do |file|
+        print "Moving #{file}..."
+        FileUtils.mv(file, PLAYER_MOUNT)
+        puts 'done'
+      end
     end
   end
 
@@ -73,6 +81,7 @@ class RingerPodcastParser
   def find_mp3_link(html = @html_raw)
     script_line = html.lines.find { |l| l.include?('traffic') }
     asset_url_index = script_line.index('assetUrl')
+    asset_url_index ||= script_line.index('actionUrl')
     http_start = script_line.index('http', asset_url_index)
     url_end = script_line.index(/[?|\\]/, http_start) - 1
 
