@@ -91,15 +91,16 @@ function JsonPPFunc()
 endfunction
 
 function SetFont(n)
-  execute ':set guifont=Inconsolata\ Medium\ ' . a:n
+  "execute ':set guifont=Inconsolata\ Medium\ ' . a:n
+  execute ':set guifont=Osaka-Mono:h' . a:n
 endfunction
 
 command Jsonpp call JsonPPFunc()
-command RegularFont call SetFont(10)
-command BigFont call SetFont(12)
-command BiggerFont call SetFont(14)
-command BiggestFont call SetFont(16)
-command BiggerestFont call SetFont(18)
+command RegularFont call SetFont(14)
+command BigFont call SetFont(16)
+command BiggerFont call SetFont(18)
+command BiggestFont call SetFont(24)
+command BiggerestFont call SetFont(24)
 set synmaxcol=320 "Vim won't crash long lines because we stop syntax
 
 nnoremap <C-W><C-E> <C-W><C-K>

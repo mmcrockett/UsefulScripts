@@ -176,7 +176,8 @@ class MikePlayer
     end
 
     @songs.each do |song|
-      song_data << Mp3Info.new(song)
+      info = Mp3Info.new(song)
+      song_data << Struct.new(:tag, :length).new(Struct.new(:artist, :title).new(info.tag.artist, info.tag.title), info.length)
       pl_length += song_data.last.length
     end
 
@@ -220,6 +221,7 @@ class MikePlayer
 
             max_size = info.size
 
+            print("\x1b]2;MikePlayer - #{info.strip.gsub('>', '')}\x07")
             print(info)
 
             $stdout.flush

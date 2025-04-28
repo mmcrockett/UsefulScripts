@@ -10,7 +10,7 @@ if [ -n "${APP_NAME}" ]; then
   TAR_FILE_LOC="${APP_DIR}/${TAR_FILE}"
   MAP_PORT="$(cat ${APP_DIR}/.port)"
 
-  (ls "${TAR_FILE_LOC}" || wget --quiet --show-progress --output-document "${TAR_FILE_LOC}" "http://mmcrockett.com/${TAR_FILE}") && \
+  ([[ -s "${TAR_FILE_LOC}" ]] || wget --quiet --show-progress --output-document "${TAR_FILE_LOC}" "http://mmcrockett.com/${TAR_FILE}") && \
     rm -rf "${APP_DIR}/current" && \
     (sudo docker stop "${APP_NAME}" || true) && \
     ln -s "${TAR_FILE_LOC}" "${APP_DIR}/current" && \
