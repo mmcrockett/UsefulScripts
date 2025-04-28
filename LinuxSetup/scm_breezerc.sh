@@ -16,3 +16,4 @@ export design_ext_dirs="Fonts IconSets"
 
 # vi: ft=sh
 alias gh='git checkout "$(git-default-branch-name)"'
+alias gl8='gl -8'
