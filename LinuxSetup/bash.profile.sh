@@ -43,7 +43,7 @@ fi
 
 if [ -n "$(isMac)" ]; then
   softLinkFromList "${_SOFT_LINK_MAC_LIST[@]}"
-  export GVIM_NO_OPTS="/opt/homebrew/Cellar/macvim/9.1.0727/bin/mvim"
+  export GVIM_NO_OPTS="/opt/homebrew/opt/macvim/bin/mvim"
 else
   export GVIM_NO_OPTS="/usr/bin/gvim"
 fi
