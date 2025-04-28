@@ -11,11 +11,21 @@ function git-default-branch-name {
   fi
 }
 function git-rm-merged-local-branches {
-  local RM_BRANCHES="$(git branch --merged | grep "^\s.*mcrockett" | grep -v ".*[^0-9]\+]")"
+  local RM_BRANCHES="$($_git_cmd branch | grep "^\s.*mcrockett")"
+  local MAIN_BRANCH="$(git-default-branch-name)"
+
+  git checkout ${MAIN_BRANCH}
 
   for BRANCH in ${RM_BRANCHES}; do
+    # Continue (skip) if there is no `-` in the cherry output
+    git cherry ${BRANCH} ${MAIN_BRANCH} | grep --silent '^-' || continue
+
+    # Continue (skip) if the branch is still on the remote
+    git branch --remotes | grep --silent "origin/${BRANCH}" && continue
+
     git-branch-history rm ${BRANCH}
-    git branch -d ${BRANCH}
+    git branch -D ${BRANCH}
+    echo "REMOVED: ${BRANCH}"
   done
 }
 function git-handle-pr-merged {
@@ -35,6 +45,7 @@ function git-handle-pr-merged {
     logCmnd git-resync-main-repo ${BRANCH} || return $?
   fi
 
+  logCmnd git remote prune origin
   logCmnd git-rm-merged-local-branches || return $?
 }
 function git-rebase-all {
@@ -157,26 +168,44 @@ function git-is-current-branch {
   local BRANCH="${1}"
 
   if [ -n "${BRANCH}" ]; then
-    echo "$(git branch | grep "^\*" | grep "${BRANCH}")"
+    echo "$(git branch | grep "^\*" | grep -w "${BRANCH}")"
   else
     echo ""
   fi
 }
-function git-record-branch-switch {
-  local FROM="${1}"
-  local TO="${2}"
-
-  if [ -n "${FROM}" ]; then
-    if [[ "$(git-default-branch-name)" != "${FROM}" ]]; then
-      git-branch-history add ${FROM}
-    fi
-  fi
-
-  if [ -n "${TO}" ]; then
-    git-branch-history rm "${TO}"
-  fi
-}
 function git {
+  # Only expand args for git commands that deal with paths or branches
+  case $1 in
+    commit|blame|add|log|rebase|merge|difftool|switch)
+      exec_scmb_expand_args "$_git_cmd" "$@";;
+    checkout)
+      local START_BRANCH="$(git-current-branch)"
+
+      if [[ "-" == ${2} ]]; then
+        local NEXT_BRANCH="$(git-branch-history last ${START_BRANCH})"
+        if [ -n "${NEXT_BRANCH}" ]; then
+          if [ -z "$(git-is-current-branch ${NEXT_BRANCH})" ]; then
+            "$_git_cmd" checkout ${NEXT_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
+          else
+            echo "Already on branch ${NEXT_BRANCH}."
+          fi
+        else
+          echo "No history found."
+        fi
+      else
+        exec_scmb_expand_args --relative "$_git_cmd" "$@" && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
+      fi;;
+    home)
+      "$_git_cmd" checkout "$(git-default-branch-name)";;
+    diff|rm|reset|restore)
+      exec_scmb_expand_args --relative "$_git_cmd" "$@";;
+    branch)
+      _scmb_git_branch_shortcuts "${@:2}";;
+    *)
+      "$_git_cmd" "$@";;
+  esac
+}
+function gitold {
   local GIT="$(which git)"
   local GIT_CMD="${1}"
   local GIT_OPT="${2}"
@@ -218,17 +247,5 @@ function git {
   fi
 }
 function git-take-rebase-commit {
-  local FILE_TO_PICK="${1}"
-
-  if [ -s "${FILE_TO_PICK}" ]; then
-    logCmnd git checkout --ours ${FILE_TO_PICK} && git add ${FILE_TO_PICK}
-  fi
+  logCmnd git checkout --ours ${@} && git add ${@}
 }
-function git-setup-scm-breeze {
-  command -v ${GIT} >/dev/null 2>&1
-
-  if [ "0" -eq "$?" ]; then
-    alias gh='git checkout "$(git-default-branch-name)"'
-  fi
-}
-git-setup-scm-breeze
