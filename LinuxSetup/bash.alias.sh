@@ -15,10 +15,15 @@ alias rails-test-ff='rails test --fail-fast'
 alias chrome-allow-cors="open -n -a /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --args --user-data-dir="/tmp/chrome_dev_test" --disable-web-security"
 alias chrome-allow-cors='/usr/bin/google-chrome-stable --args --disable-web-security --user-data-dir=/tmp/chrome_dev_test'
 alias mvim='gvim'
-alias pbcopy='xsel --primary'
+
+if [ -z "$(isMac)" ]; then
+  alias pbcopy='xsel --primary'
+fi
+
 alias increase-fd='sudo sysctl -w fs.inotify.max_user_watches=20000 && sudo sysctl -p'
 alias bluebg="echo -ne '\e]11;#111140\e\\'"
 alias greybg="echo -ne '\e]11;#333340\e\\'"
+alias ssh-dh-compute="ssh -i ${HOME}/.ssh/dreamcomputeserverpw debian@208.113.128.139"
 
 function create-find-grep-aliases {
   local FILE_ENDINGS=(
