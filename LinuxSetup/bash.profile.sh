@@ -38,7 +38,8 @@ if [ -z "${IS_DOCKER}" ]; then
   addToPathFromList "${_PATH_LIST[@]}"
   softLinkFromList "${_SOFT_LINK_LIST[@]}"
   installPathogen
-  weeklyGitPull "${LINUX_SETUP_DIR}/.."
+  weeklyUpdate "${LINUX_SETUP_DIR}/.."
+  weeklyUpdate "${HOME}/.scm_breeze"
 fi
 
 if [ -n "$(isMac)" ]; then

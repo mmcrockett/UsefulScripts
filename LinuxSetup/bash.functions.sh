@@ -15,9 +15,10 @@ function logArgs { echo 1>&2 "$(identifier):" "${@}"; }
 function logCmnd { echo 1>&2 "$(identifier):$(printf ' %q' "${@}")"; "${@}"; }
 function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
 function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
-function weeklyGitPull {
+function weeklyUpdate {
   local CUR_DIR="${PWD}"
   local REPO="${1}"
+  local CMD_TO_RUN="${2-cd ${REPO} && git pull -q &>/dev/null}"
   local GIT_FOLDER="${REPO}/.git"
   local GIT_FETCH_HEAD="${GIT_FOLDER}/FETCH_HEAD"
 
@@ -32,7 +33,7 @@ function weeklyGitPull {
       else
         if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
           information "Updating '${REPO}'."
-          cd ${REPO} && git pull -q &>/dev/null &
+          logCmnd "${CMD_TO_RUN}"
         fi
       fi
     fi

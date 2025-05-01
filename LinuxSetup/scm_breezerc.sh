@@ -17,3 +17,10 @@ export design_ext_dirs="Fonts IconSets"
 # vi: ft=sh
 alias gh='git checkout "$(git-default-branch-name)"'
 alias gl8='gl -8'
+alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
+
+function git-commit-wip {
+  GIT_HOOKS_OFF=true git add -A
+  GIT_HOOKS_OFF=true git rm $(git ls-files --deleted) 2> /dev/null
+  GIT_HOOKS_OFF=true git commit -m '--wip--'
+}
