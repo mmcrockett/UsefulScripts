@@ -123,47 +123,6 @@ function git-resync-rebase-push-branch {
 function git-current-branch {
   echo "$(git rev-parse --abbrev-ref HEAD)"
 }
-function git-branch-history {
-  if [ -d "${PWD}/.git" ]; then
-    local F="${PWD}/.git/CHECKOUT_HISTORY"
-    local C_M_D="${1}"
-    local BRANCH="${2}"
-    local R=""
-
-    if [[ "rm" != "${C_M_D}" ]] && [[ "add" != "${C_M_D}" ]] && [[ "last" != "${C_M_D}" ]]; then
-      abort "Unknown option git-branch-history ${C_M_D}"
-    fi
-
-    if [ ! -f "${F}" ]; then
-      touch "${F}"
-    fi
-
-    if [[ "rm" == "${C_M_D}" ]] || [[ "add" == "${C_M_D}" ]]; then
-      local T="$(mktemp)"
-
-      grep -v "${BRANCH}" "${F}" > "${T}"
-      mv "${T}" "${F}"
-    fi
-
-    if [[ "add" == "${C_M_D}" ]]; then
-      if [ -n "${BRANCH}" ]; then
-        echo "${BRANCH}" >> "${F}"
-      fi
-    fi
-
-    if [[ "last" == "${C_M_D}" ]]; then
-      local LAST=""
-
-      if [ -n "${BRANCH}" ]; then
-        LAST="$(grep -v "${BRANCH}" "${F}" | tail -n 1)"
-      else
-        LAST="$(tail -n 1 ${F})"
-      fi
-
-      echo "${LAST}"
-    fi
-  fi
-}
 function git-is-current-branch {
   local BRANCH="${1}"
 

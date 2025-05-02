@@ -172,7 +172,7 @@ function git-branch-history {
 
         echo "${LAST}";;
       *)
-        abort "Unknown option git-branch-history ${C_M_D}";;
+        abort "`git-branch-history` unknown option ${C_M_D}";;
     esac
 
 
