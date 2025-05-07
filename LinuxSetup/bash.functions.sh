@@ -18,26 +18,29 @@ function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 
 function weeklyUpdate {
   local CUR_DIR="${PWD}"
   local REPO="${1}"
-  local CMD_TO_RUN="${2-cd ${REPO} && git pull -q &>/dev/null}"
+  local CMD_TO_RUN="${2}"
   local GIT_FOLDER="${REPO}/.git"
   local GIT_FETCH_HEAD="${GIT_FOLDER}/FETCH_HEAD"
 
-  if [ -n "${WEEKLY_GIT_PULL_OFF}" ]; then
-    information "Weekly git pull turned off for '${REPO}'."
+  if [ ! -d "${REPO}" ]; then
+    abort "Not a valid directory '${REPO}'."
   else
-    if [ ! -d "${REPO}" ]; then
-      abort "Not a valid directory '${REPO}'."
+    if [ ! -d "${GIT_FOLDER}" ]; then
+      abort "Not a valid git location '${GIT_FOLDER}'."
     else
-      if [ ! -d "${GIT_FOLDER}" ]; then
-        abort "Not a valid git location '${GIT_FOLDER}'."
-      else
-        if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
-          information "Updating '${REPO}'."
-          logCmnd "${CMD_TO_RUN}"
-        fi
+      if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
+        information "Updating '${REPO}'."
+        logCmnd "${CMD_TO_RUN}"
+        logCmnd "touch ${GIT_FETCH_HEAD}"
       fi
     fi
   fi
+}
+function updateScripts {
+  local HERE="${PWD}"
+  logCmnd cd ${LINUX_SETUP_DIR}/..
+  logCmnd git pull -q &>/dev/null
+  logCmnd cd ${HERE}
 }
 function setupPrompt {
   local COLOR="xx"
