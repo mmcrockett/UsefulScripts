@@ -40,7 +40,12 @@ function successfile {
 }
 
 find ${GNUCASH_LOCATION} -name "*.log" -mtime '+10' -exec rm -rf {} \; || failfile "remove_gnucash_logs"
+find ${GNUCASH_LOCATION} -name "*.xml.*.gnucash" -mtime '+10' -exec rm -rf {} \; || failfile "remove_gnucash_backups"
+
 cp ${GNUCASH_LOCATION}/MikeAccounts.gnucash.xml ${GNUCASH_BACKUP_LOCATION} || failfile "gnucash_backup"
+
 dhbackup || failfile "dreamobjects_sync"
+
 rsync -az -e "ssh -i ${HOME}/.ssh/mmcrockett.rsa" "${RSYNC_FF_SRC}" washingrving@mmcrockett.com:${RSYNC_FF_DEST} || failfile "rsync_firefox"
+
 successfile
