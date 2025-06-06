@@ -31,7 +31,7 @@ function weeklyUpdate {
       if [ ! -f "${GIT_FETCH_HEAD}" -o -n "$(find "${GIT_FETCH_HEAD}" -mtime +7 2>/dev/null)" ]; then
         information "Updating '${REPO}'."
         logCmnd "${CMD_TO_RUN}"
-        logCmnd "touch ${GIT_FETCH_HEAD}"
+        logCmnd touch "${GIT_FETCH_HEAD}"
       fi
     fi
   fi
