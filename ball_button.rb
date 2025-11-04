@@ -11,7 +11,7 @@ class BallButton
   BASE_URL = 'https://balbuton.com'
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
-  TOKEN = # copy me from browser
+  TOKEN = # copy me from browser some long jwt token 'eyJhbGc....'
   USER_ID = # copy me from browser
   USER_NAME = 'bob'
 
