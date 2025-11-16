@@ -62,6 +62,7 @@ class BallButton
     }
 
     puts data.to_json
+
     dry_run ? self.get('', headers: {'x-access-token': token}) : self.post(API_URL, body: data.to_json, headers: {'x-access-token': token})
   end
 end
