@@ -24,7 +24,7 @@ class BallButton
     '5C' => COURT_5C,
     '5D' => COURT_5D,
     '6A' => COURT_6A,
-    '6B' => COURT_6B,
+    '6B' => COURT_6B
   }
 
   headers(
@@ -38,7 +38,8 @@ class BallButton
     user ||= 'Michael Crockett'
     court ||= COURT_5
     court = COURTS[court] || court
-    court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
+    court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ALL'
+    attempts = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
 
     next_week = Time.now + (7 * 24 * 60 * 60)
     (hr, min) = start.split(':')
@@ -46,25 +47,34 @@ class BallButton
     start_time = CHICAGO_TZ.local_time(next_week.year, next_week.month, next_week.day, hr.to_i, min.to_i, 0)
     end_time = start_time + (60 * minutes)
 
-    data = {
-      start_time: start_time.utc.iso8601,
-      end_time: end_time.utc.iso8601,
-      instantBook: true,
-      courts: [court].flatten,
-      userId: user_id.to_s,
-      force: false,
-      sport_id: "1",
-      fullName: user,
-      assigned: [],
-      tags: [],
-      partners: [],
-      guests: [],
-      add_on_id: nil
-    }
+    [attempts || [court]].each do |c|
+      data = {
+        start_time: start_time.utc.iso8601,
+        end_time: end_time.utc.iso8601,
+        instantBook: true,
+        courts: [c].flatten,
+        userId: user_id.to_s,
+        force: false,
+        sport_id: '1',
+        fullName: user,
+        assigned: [],
+        tags: [],
+        partners: [],
+        guests: [],
+        add_on_id: nil
+      }
 
-    puts data.to_json
+      puts data.to_json
 
-    dry_run ? self.get('', headers: {'x-access-token': token}) : self.post(API_URL, body: data.to_json, headers: {'x-access-token': token})
+      response = if dry_run
+                   get('',
+                       headers: { 'x-access-token': token })
+                 else
+                   post(API_URL, body: data.to_json,
+                                 headers: { 'x-access-token': token })
+                 end
+      return response if response.ok?
+    end
   end
 end
 
