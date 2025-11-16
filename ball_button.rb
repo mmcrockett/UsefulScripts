@@ -66,15 +66,17 @@ class BallButton
 
       puts data.to_json
 
-      response = if dry_run
+      @response = if dry_run
                    get('',
                        headers: { 'x-access-token': token })
                  else
                    post(API_URL, body: data.to_json,
                                  headers: { 'x-access-token': token })
                  end
-      return response if response.ok?
+      return @response if @response.ok?
     end
+
+    @response
   end
 end
 
