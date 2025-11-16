@@ -7,12 +7,21 @@ class BallButton
   include HTTParty
 
   COURT_5 = 1176
-  COURT_5A = 1179
+  COURT_5C = 1178
+  COURT_5D = 1179
+  COURT_6A = 1180
+  COURT_6B = 1181
   API_URL = '/api/v1/appointment/add_book'
   BASE_URL = 'https://balbuton.com'
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
-  USERS = {
+  USERS = JSON.parse(File.read('#{ENV['HOME']}/ball_button.users.json'))
+  COURTS = {
+    '5' => COURT_5,
+    '5C' => COURT_5C,
+    '5D' => COURT_5D,
+    '6A' => COURT_6A,
+    '6B' => COURT_6B,
   }
 
   headers(
@@ -22,10 +31,14 @@ class BallButton
   )
   base_uri(BASE_URL)
 
-  def self.reserve(start, minutes: 90, court: COURT_5, dry_run: false, user_id: nil)
+  def self.reserve(start, minutes: 90, court: nil, dry_run: false, user: nil)
+    user ||= 'Michael Crockett'
+    court ||= COURT_5
+    court = COURTS[court] || court
+
     next_week = Time.now + (7 * 24 * 60 * 60)
     (hr, min) = start.split(':')
-    (name, token) = USERS[user_id.to_s]
+    (user_id, token) = USERS[user]
     start_time = CHICAGO_TZ.local_time(next_week.year, next_week.month, next_week.day, hr.to_i, min.to_i, 0)
     end_time = start_time + (60 * minutes)
 
@@ -37,7 +50,7 @@ class BallButton
       userId: user_id.to_s,
       force: false,
       sport_id: "1",
-      fullName: name,
+      fullName: user,
       assigned: [],
       tags: [],
       partners: [],
@@ -50,4 +63,9 @@ class BallButton
   end
 end
 
-puts BallButton.reserve(ENV['RESERVE_START'], court: ENV['COURT'] || BallButton::COURT_5, dry_run: 'true' == ENV['DRY_RUN'], user_id: ENV['BB_USER_ID'] || '176064').parsed_response
+puts BallButton.reserve(
+  ENV['RESERVE_START'],
+  court: ENV['COURT'],
+  dry_run: 'true' == ENV['DRY_RUN'],
+  user: ENV['BB_USER']
+).parsed_response
