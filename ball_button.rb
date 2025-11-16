@@ -47,7 +47,7 @@ class BallButton
     start_time = CHICAGO_TZ.local_time(next_week.year, next_week.month, next_week.day, hr.to_i, min.to_i, 0)
     end_time = start_time + (60 * minutes)
 
-    [attempts || [court]].each do |c|
+    (attempts || [court]).each do |c|
       data = {
         start_time: start_time.utc.iso8601,
         end_time: end_time.utc.iso8601,
