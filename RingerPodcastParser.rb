@@ -65,10 +65,12 @@ class RingerPodcastParser
     puts "Removed #{filenamefull}"
  
     if Dir.exist?(PLAYER_MOUNT)
-      Dir.glob("#{filename}0*.mp3").each do |file|
-        print "Moving #{file}..."
-        FileUtils.mv(file, PLAYER_MOUNT)
-        puts 'done'
+      (0..10).each do |i|
+        Dir.glob("#{filename}0#{i}.mp3").each do |file|
+          print "Moving #{file}..."
+          FileUtils.mv(file, PLAYER_MOUNT)
+          puts 'done'
+        end
       end
     end
   end
