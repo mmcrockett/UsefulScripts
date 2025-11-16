@@ -15,7 +15,10 @@ class BallButton
   BASE_URL = 'https://balbuton.com'
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
-  USERS = JSON.parse(File.read('#{ENV['HOME']}/ball_button.users.json'))
+  USERS = JSON.parse(
+    File.read("#{ENV['HOME']}/ball_button.users.json")
+  )
+
   COURTS = {
     '5' => COURT_5,
     '5C' => COURT_5C,
