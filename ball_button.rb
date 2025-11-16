@@ -38,7 +38,7 @@ class BallButton
     user ||= 'Michael Crockett'
     court ||= COURT_5
     court = COURTS[court] || court
-    court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.upcase == 'ANY'
+    court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
 
     next_week = Time.now + (7 * 24 * 60 * 60)
     (hr, min) = start.split(':')
