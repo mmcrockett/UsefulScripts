@@ -1,8 +1,5 @@
 alias ls='ls -a'
 alias ll='ls -al'
-alias gs='/usr/bin/git status'
-alias gd='/usr/bin/git diff'
-alias gc='/usr/bin/git commit'
 alias vi='vim'
 alias gimp_resize_images="/Applications/GIMP.app/Contents/MacOS/GIMP -i -b '(batch-resize-image \"*.*\")' -b '(gimp-quit 0)'"
 alias unlock='xattr -d com.apple.quarantine ${1}'
