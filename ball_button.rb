@@ -34,8 +34,9 @@ class BallButton
   )
   base_uri(BASE_URL)
 
-  def self.reserve(start, minutes: 90, court: nil, dry_run: false, user: nil)
+  def self.reserve(start, minutes: nil, court: nil, dry_run: false, user: nil)
     user ||= 'Michael Crockett'
+    minutes ||= 60
     court ||= COURT_5
     court = COURTS[court] || court
     court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ALL'
@@ -45,7 +46,7 @@ class BallButton
     (hr, min) = start.split(':')
     (user_id, token) = USERS[user]
     start_time = CHICAGO_TZ.local_time(next_week.year, next_week.month, next_week.day, hr.to_i, min.to_i, 0)
-    end_time = start_time + (60 * minutes)
+    end_time = start_time + (60 * minutes.to_i)
 
     (attempts || [court]).each do |c|
       data = {
@@ -84,5 +85,6 @@ puts BallButton.reserve(
   ENV['RESERVE_START'],
   court: ENV['COURT'],
   dry_run: 'true' == ENV['DRY_RUN'],
+  minutes: ENV['D'],
   user: ENV['BB_USER']
 ).parsed_response
