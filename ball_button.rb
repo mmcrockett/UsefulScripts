@@ -58,7 +58,7 @@ class BallButton
   end
 
   def generate_schedule
-    html_rows = bookings.sort_by { |booking| booking.start_time }.map do |booking|
+    html_rows = bookings.sort_by(&:id).map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
       <<~HTML
          <tr>
@@ -92,7 +92,7 @@ class BallButton
         #{html_rows.join("\n")}
         </tbody>
       </table>
-      <figcaption class="blockquote-footer">
+      <figcaption class="blockquote-footer pt-3">
         #{central_time_human(Time.now)}
       </figcaption>
       </body>
@@ -131,7 +131,6 @@ class BallButton
     ).parsed_response.dig('payload', 'bookings_history') || []
 
     bookings.map do |appt|
-      Struct.new(:id, :court).new
       Struct.new(
         :id,
         :court,
