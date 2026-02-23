@@ -60,11 +60,12 @@ class BallButton
       symbol = booking.check_ins.empty? ? '✅' : '➖'
        <<~HTML
        <tr>
-          <td>#{booking.start_time} #{symbol}</td>
-          <td>#{booking.end_time} #{symbol}</td>
-          <td>#{booking.court} #{symbol}</td>
+          <td>#{booking.start_time}</td>
+          <td>#{booking.end_time}</td>
+          <td>#{booking.court}</td>
           <td>#{symbol}</td>
       </tr>
+      HTML
     end
 
     html = <<~HTML
