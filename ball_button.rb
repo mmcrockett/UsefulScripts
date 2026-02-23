@@ -53,7 +53,7 @@ class BallButton
 
   def central_time_human(time_str, long: false)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
-    f = long ? '%A %B %d %l:%M%p' : '%a %b %d %l:%M%p'
+    f = long ? '%A %B %d %Y %l:%M%p' : '%A - %b %d - %l:%M%p'
 
     t.localtime(-(6 * 60 * 60)).strftime(f)
   end
