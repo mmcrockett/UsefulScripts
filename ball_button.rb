@@ -55,8 +55,8 @@ class BallButton
     Time.iso8601(time_str).localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
   end
 
-  def generate_schedule_table
-    html_rows = bookings.parsed_response['payload']['bookings_history'].map do |_booking|
+  def generate_schedule
+    html_rows = bookings.map do |_booking|
       symbol = checked ? '✅' : '➖'
       " <tr><td>#{day} #{symbol}</td></tr>"
     end
@@ -175,7 +175,9 @@ end
 @bb = BallButton.new(ENV['BB_USER'])
 
 if 'checkin' == ARGV[0]
-  @bb.bookings
+  puts @bb.bookings
+elsif 'generate-schedule' == ARGV[0]
+  @bb.generate_schedule
 else
   @bb.reserve(
     ENV['RESERVE_START'],
