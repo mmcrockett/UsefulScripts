@@ -118,8 +118,8 @@ class BallButton
     url = "#{LIST_URL}/#{user_id}"
 
     data = {
-      startDate: central_time_at,
-      endDate: central_time_at(days_offset: 7),
+      startDate: central_time_at.to_datetime.iso8601,
+      endDate: central_time_at(days_offset: 7).to_datetime.iso8601,
       type: '0',
       is_coach: false
     }
