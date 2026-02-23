@@ -52,7 +52,7 @@ class BallButton
   end
 
   def central_time_human(time_str)
-    Time.iso8601(time_str).in_time_zone('America/Chicago').strftime('%A %b %d %l:%M%p')
+    Time.iso8601(time_str).localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
   end
 
   def generate_schedule_table
