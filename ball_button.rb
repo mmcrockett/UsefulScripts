@@ -51,14 +51,15 @@ class BallButton
     CHICAGO_TZ.local_time(offset_time.year, offset_time.month, offset_time.day, hr.to_i, min.to_i, 0)
   end
 
-  def central_time_human(time_str)
+  def central_time_human(time_str, long: false)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
+    f = long ? '%A %B %d %l:%M%p' : '%a %b %d %l:%M%p'
 
-    t.localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
+    t.localtime(-(6 * 60 * 60)).strftime(f)
   end
 
   def generate_schedule
-    html_rows = bookings.sort_by(&:id).map do |booking|
+    html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
       <<~HTML
          <tr>
@@ -93,7 +94,7 @@ class BallButton
         </tbody>
       </table>
       <figcaption class="blockquote-footer pt-3">
-        #{central_time_human(Time.now)}
+        #{central_time_human(Time.now, long: true)}
       </figcaption>
       </body>
       </html>
