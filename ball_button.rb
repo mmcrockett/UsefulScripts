@@ -16,8 +16,9 @@ class BallButton
   COURT_6A = 1180
   COURT_6B = 1181
   API_URL  = '/api/v1'
-  BOOK_URL = "#{API_URL}/appointment/add_book"
+  RESERVE_URL = "#{API_URL}/appointment/add_book"
   LIST_URL = "#{API_URL}/members/booking"
+  BOOKING_URL = "#{API_URL}/appointment/get"
   BASE_URL = 'https://balbuton.com'
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
@@ -44,6 +45,32 @@ class BallButton
     @user = user || 'Michael Crockett'
   end
 
+  def central_time_at(days_offset: 0, hr: 0, min: 0)
+    offset_time = Time.now + (days_offset * 24 * 60 * 60)
+
+    CHICAGO_TZ.local_time(offset_time.year, offset_time.month, offset_time.day, hr.to_i, min.to_i, 0)
+  end
+
+  def central_time_human(time_str)
+    Time.iso8601(time_str).in_time_zone('America/Chicago').strftime('%A %b %d %l:%M%p')
+  end
+
+  def generate_schedule_table
+    html_rows = bookings.parsed_response['payload']['bookings_history'].map do |_booking|
+      symbol = checked ? '✅' : '➖'
+      " <tr><td>#{day} #{symbol}</td></tr>"
+    end
+
+    html = <<~HTML
+      <table border='1'>
+        <tr><th>Day</th></tr>
+        #{html_rows.join("\n")}
+      </table>
+    HTML
+
+    File.open('/home/washingrving/mmcrockett.com/jpickle.html', 'w') { |f| f.write(html) }
+  end
+
   def user_id
     USERS[@user].first.to_s
   end
@@ -60,15 +87,46 @@ class BallButton
     url = "#{LIST_URL}/#{user_id}"
 
     data = {
-      startDate:"2026-02-01T00:00:00-06:00",
-      endDate:"2026-02-28T23:59:59-06:00",
-    type:"0",
-    is_coach:false}
+      startDate: central_time_at,
+      endDate: central_time_at(days_offset: 7),
+      type: '0',
+      is_coach: false
+    }
 
-    BallButton.post(url, body: data.to_json,headers: user_token_header)
+    bookings = BallButton.post(
+      url,
+      body: data.to_json,
+      headers: user_token_header
+    ).parsed_response.dig('payload', 'bookings_history') || []
+
+    bookings.map do |appt|
+      Struct.new(:id, :court).new
+      Struct.new(
+        :id,
+        :court,
+        :check_ins,
+        :start_time,
+        :end_time
+      ).new(
+        appt['id'],
+        appt['court_names'],
+        booking(appt['id']).check_ins,
+        central_time_human(appt['start_time']),
+        central_time_human(appt['end_time'])
+      )
+    end
   end
 
-  def checkin
+  def booking(booking_id)
+    url = "#{BOOKING_URL}/#{booking_id}"
+
+    booking = BallButton.get(url, body: data.to_json, headers: user_token_header).parsed_response['payload']
+
+    Struct.new(
+      :check_ins
+    ).new(
+      booking['check_ins']
+    )
   end
 
   def reserve(start, minutes: nil, court: nil, dry_run: false)
@@ -78,9 +136,8 @@ class BallButton
     court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ALL'
     attempts = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
 
-    next_week = Time.now + (7 * 24 * 60 * 60)
     (hr, min) = start.split(':')
-    start_time = CHICAGO_TZ.local_time(next_week.year, next_week.month, next_week.day, hr.to_i, min.to_i, 0)
+    start_time = central_time_at(days_offset: 7, hr: hr, min: min)
     end_time = start_time + (60 * minutes.to_i)
 
     (attempts || [court]).each do |c|
@@ -103,11 +160,11 @@ class BallButton
       puts data.to_json
 
       @response = if dry_run
-                   BallButton.get('', headers: user_token_header)
-                 else
-                   BallButton.post(BOOK_URL, body: data.to_json,
-                                 headers: user_token_header)
-                 end
+                    BallButton.get('', headers: user_token_header)
+                  else
+                    BallButton.post(RESERVE_URL, body: data.to_json,
+                                                 headers: user_token_header)
+                  end
       return @response if @response.ok?
     end
 
@@ -117,13 +174,13 @@ end
 
 @bb = BallButton.new(ENV['BB_USER'])
 
-if( 'checkin' == ARGV[0])
-@bb.bookings
+if 'checkin' == ARGV[0]
+  @bb.bookings
 else
-@bb.reserve(
-  ENV['RESERVE_START'],
-  court: ENV['COURT'],
-  dry_run: 'true' == ENV['DRY_RUN'],
-  minutes: ENV['D']
-).parsed_response
+  @bb.reserve(
+    ENV['RESERVE_START'],
+    court: ENV['COURT'],
+    dry_run: 'true' == ENV['DRY_RUN'],
+    minutes: ENV['D']
+  ).parsed_response
 end
