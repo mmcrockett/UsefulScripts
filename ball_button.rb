@@ -135,13 +135,13 @@ class BallButton
       Struct.new(
         :id,
         :court,
-        :check_ins,
+        :checkins,
         :start_time,
         :end_time
       ).new(
         appt['id'],
         appt['court_names'],
-        booking(appt['id']).check_ins,
+        booking(appt['id']).checkins,
         central_time_human(appt['start_time']),
         central_time_human(appt['end_time'])
       )
@@ -154,9 +154,9 @@ class BallButton
     booking = BallButton.get(url, headers: user_token_header).parsed_response['payload']
 
     Struct.new(
-      :check_ins
+      :checkins
     ).new(
-      booking['check_ins']
+      booking['checkins']
     )
   end
 
