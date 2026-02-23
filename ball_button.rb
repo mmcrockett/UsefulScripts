@@ -52,7 +52,9 @@ class BallButton
   end
 
   def central_time_human(time_str)
-    Time.iso8601(time_str).localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
+    t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
+
+    t.iso8601(time_str).localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
   end
 
   def generate_schedule
@@ -60,10 +62,10 @@ class BallButton
       symbol = booking.check_ins.nil? || booking.check_ins.empty? ? '✅' : '➖'
       <<~HTML
          <tr>
-            <td scope="row">#{booking.start_time}</td>
-            <td scope="row">#{booking.end_time}</td>
-            <td scope="row">#{booking.court}</td>
-            <td scope="row">#{symbol}</td>
+            <td>#{booking.start_time}</td>
+            <td>#{booking.end_time}</td>
+            <td>#{booking.court}</td>
+            <td>#{symbol}</td>
         </tr>
       HTML
     end
@@ -71,24 +73,28 @@ class BallButton
     html = <<~HTML
       <html>
       <head>
-        <script
-        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.min.js"
-        integrity="sha512-nKXmKvJyiGQy343jatQlzDprflyB5c+tKCzGP3Uq67v+lmzfnZUi/ZT+fc6ITZfSC5HhaBKUIvr/nTLCV+7F+Q=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer">
-        </script>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
         <meta charset="UTF-8">
+        <title>🏓 JCC Pickleball</title>
       </head>
-      <body>
-      <table border='1'>
+      <body class="p-3">
+      <table class="table table-striped">
+      <thead>
         <tr>
           <th scope="col">Start</th>
           <th scope="col">End</th>
           <th scope="col">Court</th>
           <th scope="col">Checked In?</th>
         </tr>
+        </thead>
+        <tbody>
         #{html_rows.join("\n")}
+        </tbody>
       </table>
+      <figcaption class="blockquote-footer">
+        #{central_time_human(Time.now)}
+      </figcaption>
       </body>
       </html>
     HTML
