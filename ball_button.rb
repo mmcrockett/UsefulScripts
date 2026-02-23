@@ -59,7 +59,7 @@ class BallButton
 
   def generate_schedule
     html_rows = bookings.map do |booking|
-      symbol = booking.check_ins.nil? || booking.check_ins.empty? ? '✅' : '➖'
+      symbol = booking.checkins.nil? || booking.checkins.empty? ? '✅' : '➖'
       <<~HTML
          <tr>
             <td>#{booking.start_time}</td>
