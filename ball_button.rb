@@ -3,6 +3,10 @@ require 'json'
 require 'time'
 require 'tzinfo'
 
+# CheckIn
+# https://balbuton.com/api/v1/members_checkin/addcheckin/1592456
+# {"date":"2026-02-22T09:26:30-06:00","users":["176064"]}
+
 class BallButton
   include HTTParty
 
@@ -11,7 +15,9 @@ class BallButton
   COURT_5D = 1179
   COURT_6A = 1180
   COURT_6B = 1181
-  API_URL = '/api/v1/appointment/add_book'
+  API_URL  = '/api/v1'
+  BOOK_URL = "#{API_URL}/appointment/add_book"
+  LIST_URL = "#{API_URL}/members/booking/"
   BASE_URL = 'https://balbuton.com'
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
@@ -34,8 +40,31 @@ class BallButton
   )
   base_uri(BASE_URL)
 
-  def self.reserve(start, minutes: nil, court: nil, dry_run: false, user: nil)
-    user ||= 'Michael Crockett'
+  def initialize(user = ENV['BB_USER'])
+    @user = user || 'Michael Crockett'
+  end
+
+  def user_id
+    USERS[@user].first.to_s
+  end
+
+  def user_token
+    USERS[@user].last
+  end
+
+  def user_token_header
+    { 'x-access-token': user_token }
+  end
+
+  def bookings
+                   BallButton.post("#{LIST_URL}/#{user_id}", body: data.to_json,
+                                 headers: user_token_header).parsed_response
+  end
+
+  def checkin
+  end
+
+  def reserve(start, minutes: nil, court: nil, dry_run: false)
     minutes ||= 60
     court ||= COURT_5
     court = COURTS[court] || court
@@ -44,7 +73,6 @@ class BallButton
 
     next_week = Time.now + (7 * 24 * 60 * 60)
     (hr, min) = start.split(':')
-    (user_id, token) = USERS[user]
     start_time = CHICAGO_TZ.local_time(next_week.year, next_week.month, next_week.day, hr.to_i, min.to_i, 0)
     end_time = start_time + (60 * minutes.to_i)
 
@@ -54,10 +82,10 @@ class BallButton
         end_time: end_time.utc.iso8601,
         instantBook: true,
         courts: [c].flatten,
-        userId: user_id.to_s,
+        userId: user_id,
         force: false,
         sport_id: '1',
-        fullName: user,
+        fullName: @user,
         assigned: [],
         tags: [],
         partners: [],
@@ -68,11 +96,10 @@ class BallButton
       puts data.to_json
 
       @response = if dry_run
-                   get('',
-                       headers: { 'x-access-token': token })
+                   BallButton.get('', headers: user_token_header)
                  else
-                   post(API_URL, body: data.to_json,
-                                 headers: { 'x-access-token': token })
+                   BallButton.post(BOOK_URL, body: data.to_json,
+                                 headers: user_token_header)
                  end
       return @response if @response.ok?
     end
@@ -81,10 +108,11 @@ class BallButton
   end
 end
 
-puts BallButton.reserve(
+puts BallButton.new(
+  ENV['BB_USER']
+).reserve(
   ENV['RESERVE_START'],
   court: ENV['COURT'],
   dry_run: 'true' == ENV['DRY_RUN'],
-  minutes: ENV['D'],
-  user: ENV['BB_USER']
+  minutes: ENV['D']
 ).parsed_response
