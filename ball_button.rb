@@ -120,7 +120,7 @@ class BallButton
   def booking(booking_id)
     url = "#{BOOKING_URL}/#{booking_id}"
 
-    booking = BallButton.get(url, body: data.to_json, headers: user_token_header).parsed_response['payload']
+    booking = BallButton.get(url, headers: user_token_header).parsed_response['payload']
 
     Struct.new(
       :check_ins
