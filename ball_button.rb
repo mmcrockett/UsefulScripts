@@ -119,7 +119,7 @@ class BallButton
 
     data = {
       startDate: central_time_at.to_datetime.iso8601,
-      endDate: central_time_at(days_offset: 7).to_datetime.iso8601,
+      endDate: central_time_at(days_offset: 7, hr: 23).to_datetime.iso8601,
       type: '0',
       is_coach: false
     }
