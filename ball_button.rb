@@ -54,7 +54,7 @@ class BallButton
   def central_time_human(time_str)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
 
-    t.iso8601(time_str).localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
+    t.localtime(-(6 * 60 * 60)).strftime('%A %b %d %l:%M%p')
   end
 
   def generate_schedule
