@@ -60,24 +60,37 @@ class BallButton
       symbol = booking.check_ins.nil? || booking.check_ins.empty? ? '✅' : '➖'
       <<~HTML
          <tr>
-            <td>#{booking.start_time}</td>
-            <td>#{booking.end_time}</td>
-            <td>#{booking.court}</td>
-            <td>#{symbol}</td>
+            <td scope="row">#{booking.start_time}</td>
+            <td scope="row">#{booking.end_time}</td>
+            <td scope="row">#{booking.court}</td>
+            <td scope="row">#{symbol}</td>
         </tr>
       HTML
     end
 
     html = <<~HTML
+      <html>
+      <head>
+        <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.min.js"
+        integrity="sha512-nKXmKvJyiGQy343jatQlzDprflyB5c+tKCzGP3Uq67v+lmzfnZUi/ZT+fc6ITZfSC5HhaBKUIvr/nTLCV+7F+Q=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer">
+        </script>
+        <meta charset="UTF-8">
+      </head>
+      <body>
       <table border='1'>
         <tr>
-          <th>Start</th>
-          <th>End</th>
-          <th>Court</th>
-          <th>Checked In?</th>
+          <th scope="col">Start</th>
+          <th scope="col">End</th>
+          <th scope="col">Court</th>
+          <th scope="col">Checked In?</th>
         </tr>
         #{html_rows.join("\n")}
       </table>
+      </body>
+      </html>
     HTML
 
     File.open('/home/washingrving/mmcrockett.com/jpickle.html', 'w') { |f| f.write(html) }
