@@ -56,14 +56,25 @@ class BallButton
   end
 
   def generate_schedule
-    html_rows = bookings.map do |_booking|
-      symbol = checked ? '✅' : '➖'
-      " <tr><td>#{day} #{symbol}</td></tr>"
+    html_rows = bookings.map do |booking|
+      symbol = booking.check_ins.empty? ? '✅' : '➖'
+       <<~HTML
+       <tr>
+          <td>#{booking.start_time} #{symbol}</td>
+          <td>#{booking.end_time} #{symbol}</td>
+          <td>#{booking.court} #{symbol}</td>
+          <td>#{symbol}</td>
+      </tr>
     end
 
     html = <<~HTML
       <table border='1'>
-        <tr><th>Day</th></tr>
+        <tr>
+          <th>Start</th>
+          <th>End</th>
+          <th>Court</th>
+          <th>Checked In?</th>
+        </tr>
         #{html_rows.join("\n")}
       </table>
     HTML
