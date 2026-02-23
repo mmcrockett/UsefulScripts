@@ -17,7 +17,7 @@ class BallButton
   COURT_6B = 1181
   API_URL  = '/api/v1'
   BOOK_URL = "#{API_URL}/appointment/add_book"
-  LIST_URL = "#{API_URL}/members/booking/"
+  LIST_URL = "#{API_URL}/members/booking"
   BASE_URL = 'https://balbuton.com'
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
@@ -57,8 +57,15 @@ class BallButton
   end
 
   def bookings
-                   BallButton.post("#{LIST_URL}/#{user_id}", body: data.to_json,
-                                 headers: user_token_header).parsed_response
+    url = "#{LIST_URL}/#{user_id}"
+
+    data = {
+      startDate:"2026-02-01T00:00:00-06:00",
+      endDate:"2026-02-28T23:59:59-06:00",
+    type:"0",
+    is_coach:false}
+
+    BallButton.post(url, body: data.to_json,headers: user_token_header)
   end
 
   def checkin
@@ -108,11 +115,15 @@ class BallButton
   end
 end
 
-puts BallButton.new(
-  ENV['BB_USER']
-).reserve(
+@bb = BallButton.new(ENV['BB_USER'])
+
+if( 'checkin' == ARGV[0])
+@bb.bookings
+else
+@bb.reserve(
   ENV['RESERVE_START'],
   court: ENV['COURT'],
   dry_run: 'true' == ENV['DRY_RUN'],
   minutes: ENV['D']
 ).parsed_response
+end
