@@ -50,6 +50,9 @@ function docker-restart-rebuild {
 function docker-ps-short {
   docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Ports}}\t{{.Status}}"
 }
+function docker-stats-short {
+  docker stats --format "table {{.ID}}\t{{.Name}}\t{{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.PIDs}}"
+}
 function docker-switch-to-local-rails {
   if [ -n "${DOCKERCOMPOSE_HOME}" ]; then
     local DOCKER_PID="$(docker ps -q --filter "name=.*app.*")"

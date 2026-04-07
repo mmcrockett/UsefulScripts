@@ -558,7 +558,8 @@ function isMac {
 function mikeplayer() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-music/"
   local _VOLUME=0.5
-  ruby MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
+  printf '\033]11;rgb:80/00/80\007'
+  cd ~/UsefulScripts.mmcrockett && ruby MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@} && cd -
 }
 function processPhotos() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-pictures/"
