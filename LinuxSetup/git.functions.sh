@@ -1,15 +1,3 @@
-function git-default-branch-name {
-  local DEFAULT_LIST="master|main|development|production"
-  local INFERRED_DEFAULT="$(git config --local --get-regexp branch 2> /dev/null | grep remote | grep -E "(${DEFAULT_LIST})" | cut -d '.' -f 2)"
-
-  if [ -n "${GIT_DEFAULT_BRANCH}" ]; then
-    echo "${GIT_DEFAULT_BRANCH}"
-  elif [ -n "${INFERRED_DEFAULT}" ]; then
-    echo "${INFERRED_DEFAULT}"
-  else
-    echo "master"
-  fi
-}
 function git-rm-merged-local-branches {
   local RM_BRANCHES="$($_git_cmd branch | grep "^\s.*mcrockett")"
   local MAIN_BRANCH="$(git-default-branch-name)"
@@ -132,6 +120,29 @@ function git-is-current-branch {
     echo ""
   fi
 }
+function git-push-open-pr {
+  local TMP_OUT
+  TMP_OUT="$(mktemp)"
+
+  "$_git_cmd" "$@" 2>&1 | tee "${TMP_OUT}"
+  local PUSH_STATUS=${PIPESTATUS[0]}
+
+  if [ ${PUSH_STATUS} -eq 0 ]; then
+    local PR_URL
+    PR_URL="$(
+      grep -Eo 'https://github\.com/[[:alnum:]_.-]+/[[:alnum:]_.-]+/(pull/new/[[:alnum:]_./?=&%-]+|compare/[[:alnum:]_./?=&%-]+)' "${TMP_OUT}" \
+      | head -n 1
+    )"
+
+    if [ -n "${PR_URL}" ]; then
+      echo "Opening PR URL: ${PR_URL}"
+      open "${PR_URL}"
+    fi
+  fi
+
+  rm -f "${TMP_OUT}"
+  return ${PUSH_STATUS}
+}
 function git {
   # Only expand args for git commands that deal with paths or branches
   case $1 in
@@ -160,50 +171,11 @@ function git {
       exec_scmb_expand_args --relative "$_git_cmd" "$@";;
     branch)
       _scmb_git_branch_shortcuts "${@:2}";;
+    push)
+      git-push-open-pr "$@";;
     *)
       "$_git_cmd" "$@";;
   esac
-}
-function gitold {
-  local GIT="$(which git)"
-  local GIT_CMD="${1}"
-  local GIT_OPT="${2}"
-
-  command -v ${GIT} >/dev/null 2>&1
-
-  if [ "0" -eq "$?" ]; then
-    if [[ "checkout" == ${GIT_CMD} ]]; then
-      local START_BRANCH="$(git-current-branch)"
-
-      if [[ "-" == ${GIT_OPT} ]]; then
-        local NEXT_BRANCH="$(git-branch-history last ${START_BRANCH})"
-
-        if [ -n "${NEXT_BRANCH}" ]; then
-          if [ -z "$(git-is-current-branch ${NEXT_BRANCH})" ]; then
-            ${GIT} checkout ${NEXT_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
-          else
-            echo "Already on branch ${NEXT_BRANCH}."
-          fi
-        else
-          echo "No history found."
-        fi
-      else
-        exec_scmb_expand_args ${GIT} ${@} && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
-      fi
-    elif [[ "home" == ${GIT_CMD} ]]; then
-      git checkout "$(git-default-branch-name)"
-    else
-      ${GIT} "${@}"
-
-      if [[ "branch" == ${GIT_CMD} ]] && [[ "" != "${3}" ]]; then
-        if [[ "-D" == ${GIT_OPT} ]] || [[ "-d" == ${GIT_OPT} ]]; then
-          git-branch-history rm ${3}
-        fi
-      fi
-    fi
-  else
-    abort "GIT not installed or set incorrectly '${GIT}'"
-  fi
 }
 function git-take-rebase-commit {
   logCmnd git checkout --ours ${@} && git add ${@}
