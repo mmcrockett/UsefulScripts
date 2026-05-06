@@ -85,15 +85,13 @@ class BallButton
     html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
       time_display = [
-        central_time_human(booking.start_time).ljust(20),
-        [
           central_time_human(booking.start_time, format: :time),
           central_time_human(booking.end_time, format: :time)
-        ].join('::')
       ].join(' - ')
 
       <<~HTML
          <tr>
+            <td>#{central_time_human(booking.start_time)}</td>
             <td>#{time_display}</td>
             <td>#{booking.court}</td>
             <td>#{symbol}</td>
@@ -113,6 +111,7 @@ class BallButton
       <table class="table table-striped">
       <thead>
         <tr>
+          <th scope="col">Date</th>
           <th scope="col">Time</th>
           <th scope="col">Court</th>
           <th scope="col">Checked In?</th>
