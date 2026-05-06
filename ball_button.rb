@@ -48,9 +48,16 @@ class BallButton
     CHICAGO_TZ.local_time(offset_time.year, offset_time.month, offset_time.day, hr.to_i, min.to_i, 0)
   end
 
-  def central_time_human(time_str, long: false)
+  def central_time_human(time_str, format: :day)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
-    f = long ? '%A %B %d %Y %l:%M%p' : '%A - %b %d - %l:%M%p'
+    f = case format
+        when :long
+          '%A %B %d %Y %l:%M%p'
+        when :time
+          '%l:%M%p'
+        else
+          '%A - %b %d'
+        end
 
     t.localtime(CHICAGO_TZ.utc_offset).strftime(f)
   end
@@ -77,9 +84,15 @@ class BallButton
 
     html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
+      time_display = [
+        central_time_human(booking.start_time),
+        central_time_human(booking.start_time, format: :time),
+        central_time_human(booking.end_time, format: :time)
+    ].join(' :: ')
+
       <<~HTML
          <tr>
-            <td>[#{booking.start_time} ::#{booking.end_time}]</td>
+            <td>#{time_display}</td>
             <td>#{booking.court}</td>
             <td>#{symbol}</td>
         </tr>
@@ -156,8 +169,8 @@ class BallButton
         appt['id'],
         appt['court_names'],
         booking(appt['id']).checkins,
-        central_time_human(appt['start_time']),
-        central_time_human(appt['end_time'])
+        appt['start_time'],
+        appt['end_time']
       )
     end
   end
