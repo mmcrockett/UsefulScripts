@@ -123,7 +123,7 @@ class BallButton
         </tbody>
       </table>
       <figcaption class="blockquote-footer pt-3">
-        #{central_time_human(Time.now, format: long)}
+        #{central_time_human(Time.now, format: :long)}
       </figcaption>
       </body>
       </html>
