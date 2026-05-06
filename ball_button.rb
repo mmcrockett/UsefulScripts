@@ -51,9 +51,16 @@ class BallButton
     CHICAGO_TZ.local_time(offset_time.year, offset_time.month, offset_time.day, hr.to_i, min.to_i, 0)
   end
 
-  def central_time_human(time_str, long: false)
+  def central_time_human(time_str, format: :short)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
-    f = long ? '%A %B %d %Y %l:%M%p' : '%A - %b %d - %l:%M%p'
+    f = case(format.to_sym)
+    when :long
+      '%A %B %d %Y %l:%M%p'
+    when :time
+      '%l:%M%p'
+    else
+      '%A - %b %d - %l:%M%p'
+    end
 
     t.localtime(-(6 * 60 * 60)).strftime(f)
   end

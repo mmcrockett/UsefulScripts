@@ -11,7 +11,8 @@ alias rails-changed-tests-ff='rails-changed-tests --fail-fast'
 alias rails-test-ff='rails test --fail-fast'
 alias chrome-allow-cors="open -n -a /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --args --user-data-dir="/tmp/chrome_dev_test" --disable-web-security"
 alias chrome-allow-cors='/usr/bin/google-chrome-stable --args --disable-web-security --user-data-dir=/tmp/chrome_dev_test'
-alias chrome-incognito="chromium --incognito &> /dev/null &"
+alias chrome-incognito="/Applications/Chromium.app/Contents/MacOS/Chromium --incognito &> /dev/null &"
+alias chromium-incognito="chrome-incognito"
 alias mvim='gvim'
 
 if [ -z "$(isMac)" ]; then
