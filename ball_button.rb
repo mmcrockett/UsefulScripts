@@ -50,7 +50,7 @@ class BallButton
 
   def central_time_human(time_str, format: :day)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
-    f = case format
+    f = case(format.to_sym)
         when :long
           '%A %B %d %Y %l:%M%p'
         when :time
@@ -85,10 +85,12 @@ class BallButton
     html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
       time_display = [
-        central_time_human(booking.start_time),
-        central_time_human(booking.start_time, format: :time),
-        central_time_human(booking.end_time, format: :time)
-    ].join(' :: ')
+        central_time_human(booking.start_time).ljust(20),
+        [
+          central_time_human(booking.start_time, format: :time),
+          central_time_human(booking.end_time, format: :time)
+        ].join('::')
+      ].join(' - ')
 
       <<~HTML
          <tr>
@@ -121,7 +123,7 @@ class BallButton
         </tbody>
       </table>
       <figcaption class="blockquote-footer pt-3">
-        #{central_time_human(Time.now, long: true)}
+        #{central_time_human(Time.now, format: long)}
       </figcaption>
       </body>
       </html>
