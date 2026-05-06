@@ -3,10 +3,6 @@ require 'json'
 require 'time'
 require 'tzinfo'
 
-# CheckIn
-# https://balbuton.com/api/v1/members_checkin/addcheckin/1592456
-# {"date":"2026-02-22T09:26:30-06:00","users":["176064"]}
-
 class BallButton
   include HTTParty
 
@@ -16,10 +12,11 @@ class BallButton
   COURT_6A = 1180
   COURT_6B = 1181
   API_URL  = '/api/v1'
-  RESERVE_URL = "#{API_URL}/appointment/add_book"
-  LIST_URL = "#{API_URL}/members/booking"
-  BOOKING_URL = "#{API_URL}/appointment/get"
   BASE_URL = 'https://balbuton.com'
+  BOOKING_URL = "#{API_URL}/appointment/get"
+  CHECK_IN_URL = "#{API_URL}/members_checkin/addcheckin"
+  LIST_URL = "#{API_URL}/members/booking"
+  RESERVE_URL = "#{API_URL}/appointment/add_book"
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
 
   USERS = JSON.parse(
@@ -51,27 +48,38 @@ class BallButton
     CHICAGO_TZ.local_time(offset_time.year, offset_time.month, offset_time.day, hr.to_i, min.to_i, 0)
   end
 
-  def central_time_human(time_str, format: :short)
+  def central_time_human(time_str, long: false)
     t = time_str.is_a?(String) ? Time.iso8601(time_str) : time_str
-    f = case(format.to_sym)
-    when :long
-      '%A %B %d %Y %l:%M%p'
-    when :time
-      '%l:%M%p'
-    else
-      '%A - %b %d - %l:%M%p'
+    f = long ? '%A %B %d %Y %l:%M%p' : '%A - %b %d - %l:%M%p'
+
+    t.localtime(CHICAGO_TZ.utc_offset).strftime(f)
+  end
+
+  def check_in_next
+    # https://balbuton.com/api/v1/members_checkin/addcheckin/1592456
+    # {"date":"2026-02-22T09:26:30-06:00","users":["176064"]}
+
+    next_check_in = bookings.sort_by {|booking| Time.parse(booking.start_time) }.find do |booking|
+      booking.checkins.nil? || booking.checkins.empty?
     end
 
-    t.localtime(-(6 * 60 * 60)).strftime(f)
+    return if next_check_in.nil?
+
+    BallButton.post(
+      "#{CHECK_IN_URL}/#{next_check_in.id}",
+      body: {date: central_time_at, users: [user_id]}.to_json,
+      headers: user_token_header
+    )
   end
 
   def generate_schedule
+    check_in_next
+
     html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
       <<~HTML
          <tr>
-            <td>#{booking.start_time}</td>
-            <td>#{booking.end_time}</td>
+            <td>[#{booking.start_time} ::#{booking.end_time}]</td>
             <td>#{booking.court}</td>
             <td>#{symbol}</td>
         </tr>
@@ -90,8 +98,7 @@ class BallButton
       <table class="table table-striped">
       <thead>
         <tr>
-          <th scope="col">Start</th>
-          <th scope="col">End</th>
+          <th scope="col">Time</th>
           <th scope="col">Court</th>
           <th scope="col">Checked In?</th>
         </tr>
@@ -132,13 +139,13 @@ class BallButton
       is_coach: false
     }
 
-    bookings = BallButton.post(
+    @bookings ||= BallButton.post(
       url,
       body: data.to_json,
       headers: user_token_header
     ).parsed_response.dig('payload', 'bookings_history') || []
 
-    bookings.map do |appt|
+    @bookings.map do |appt|
       Struct.new(
         :id,
         :court,
@@ -170,7 +177,7 @@ class BallButton
   def reserve(start, minutes: nil, court: nil, dry_run: false)
     minutes ||= 60
     court ||= COURT_5
-    court = COURTS[court] || court
+    court = COURTS[court.to_s.upcase] || court
     court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ALL'
     attempts = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
 
@@ -195,7 +202,8 @@ class BallButton
         add_on_id: nil
       }
 
-      puts data.to_json
+      puts "rattempt: #{Time.now}"
+      puts "rrequest: #{data.to_json}"
 
       @response = if dry_run
                     BallButton.get('', headers: user_token_header)
@@ -212,15 +220,15 @@ end
 
 @bb = BallButton.new(ENV['BB_USER'])
 
-if 'checkin' == ARGV[0]
-  puts @bb.bookings
-elsif 'generate-schedule' == ARGV[0]
-  @bb.generate_schedule
+if 'generate-schedule' == ARGV[0]
+  puts @bb.generate_schedule
 else
-  @bb.reserve(
+  response = @bb.reserve(
     ENV['RESERVE_START'],
     court: ENV['COURT'],
     dry_run: 'true' == ENV['DRY_RUN'],
     minutes: ENV['D']
   ).parsed_response
+
+  puts "response: #{response}"
 end
