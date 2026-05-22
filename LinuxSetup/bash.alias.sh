@@ -22,6 +22,7 @@ fi
 alias increase-fd='sudo sysctl -w fs.inotify.max_user_watches=20000 && sudo sysctl -p'
 alias bluebg="echo -ne '\e]11;#111140\e\\'"
 alias greybg="echo -ne '\e]11;#333340\e\\'"
+alias purplebg="echo -ne '\e]11;#2D004D\e\\'"
 alias ssh-dh-compute="ssh -i ${HOME}/.ssh/dreamcomputeserverpw debian@208.113.128.139"
 
 function create-find-grep-aliases {
@@ -35,6 +36,19 @@ function create-find-grep-aliases {
   for FILE_ENDING in "${FILE_ENDINGS[@]}"; do
     alias find-grep-${FILE_ENDING}="find-grep -n '*.${FILE_ENDING}'"
   done
+}
+
+function claude {
+  trap 'printf "\e]111\a"' RETURN
+  purplebg
+
+  local last_dir="${PWD##*/}"
+
+  if [[ $# -gt 0 && "$1" != -* ]]; then
+    command claude --name "${last_dir} $*" "$@"
+  else
+    command claude --name "${last_dir}" "$@"
+  fi
 }
 
 create-find-grep-aliases

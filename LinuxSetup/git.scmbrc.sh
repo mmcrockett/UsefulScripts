@@ -49,7 +49,7 @@ git_reset_alias="grs"
 git_reset_hard_alias="grsh"
 git_rm_alias="grm"
 git_blame_alias="gbl"
-git_diff_alias="gd"
+git_diff_alias="gd_scmb"
 git_diff_no_whitespace_alias="gdnw"
 git_diff_file_alias="gdf"
 git_diff_word_alias="gdw"
@@ -133,16 +133,7 @@ scmb_wrapped_shell_commands=(vim emacs gedit cat rm cp mv ln cd ls less subl cod
 shell_ls_aliases_enabled="true"
 
 function git-default-branch-name {
-  local DEFAULT_LIST="master|main|development|production"
-  local INFERRED_DEFAULT="$(git config --local --get-regexp branch 2> /dev/null | grep remote | grep -E "(${DEFAULT_LIST})" | cut -d '.' -f 2)"
-
-  if [ -n "${GIT_DEFAULT_BRANCH}" ]; then
-    echo "${GIT_DEFAULT_BRANCH}"
-  elif [ -n "${INFERRED_DEFAULT}" ]; then
-    echo "${INFERRED_DEFAULT}"
-  else
-    echo "master"
-  fi
+  echo "$(git branch -rl '*/HEAD' | rev | cut -d/ -f1 | rev)"
 }
 function git-branch-history {
   if [ -d "${PWD}/.git" ]; then
@@ -195,5 +186,20 @@ function git-record-branch-switch {
 
   if [ -n "${TO}" ]; then
     git-branch-history rm "${TO}"
+  fi
+}
+function gd {
+  if [[ "$1" =~ ^-[0-9]+$ ]]; then
+    local n="${1#-}"
+    local prev_tildes=$(printf '~%.0s' $(seq 1 "$n"))
+    local curr_tildes=$(printf '~%.0s' $(seq 1 $((n - 1))))
+
+    if (( n == 1 )); then
+      curr_tildes=""
+    fi
+
+    exec_scmb_expand_args --relative "$_git_cmd" diff "HEAD${prev_tildes}..HEAD${curr_tildes}" "${@:2}"
+  else
+    exec_scmb_expand_args --relative "$_git_cmd" diff "$@"
   fi
 }

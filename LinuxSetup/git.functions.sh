@@ -1,19 +1,44 @@
 function git-rm-merged-local-branches {
-  local RM_BRANCHES="$($_git_cmd branch | grep "^\s.*mcrockett")"
   local MAIN_BRANCH="$(git-default-branch-name)"
+  local RM_BRANCHES="$($_git_cmd branch | grep -v "${MAIN_BRANCH}")"
 
-  git checkout ${MAIN_BRANCH}
+  local -a GHCLI_OPTS=(
+    "--state" "all"
+    "--json" "state,mergedAt,closedAt,url"
+    "--template" '{{range .}}#{{.state}}|{{.url}}{{if .mergedAt}} {{.mergedAt}}{{else if .closedAt}} {{.closedAt}}{{end}}{{end}}'
+  )
+
+  git checkout ${MAIN_BRANCH} > /dev/null 2>&1 || return $?
 
   for BRANCH in ${RM_BRANCHES}; do
-    # Continue (skip) if there is no `-` in the cherry output
-    git cherry ${BRANCH} ${MAIN_BRANCH} | grep --silent '^-' || continue
+    echo -n "${BRANCH}"
 
-    # Continue (skip) if the branch is still on the remote
-    git branch --remotes | grep --silent "origin/${BRANCH}" && continue
+    local PR_STATUS="$(ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}")"
 
-    git-branch-history rm ${BRANCH}
-    git branch -D ${BRANCH}
-    echo "REMOVED: ${BRANCH}"
+    if [ -n "${PR_STATUS}" ]; then
+      local PR_STATE="${PR_STATUS%%|*}"
+      local PR_INFO="${PR_STATUS##*|}"
+      local TRASH=""
+
+      if [[ "${PR_STATE}" == *"MERGED"* || "${PR_STATE}" == *"CLOSED"* ]]; then
+        local STATE_ICON="⛔"
+        [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
+
+        echo -n " ${STATE_ICON}"
+        git-branch-history rm ${BRANCH}
+        git branch -D ${BRANCH}
+        TRASH=" 🗑"
+      elif [[ "${PR_STATE}" == *"OPEN"* ]]; then
+        echo -n " 🔀"
+      else
+        echo -n " ${PR_STATE}"
+      fi
+
+      echo -n " ${PR_INFO}${TRASH}"
+    else
+      echo -n " 🟡"
+    fi
+    echo
   done
 }
 function git-handle-pr-merged {
