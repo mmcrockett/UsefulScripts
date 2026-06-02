@@ -13,7 +13,8 @@ function git-rm-merged-local-branches {
   echo "=== Checking for merged and closed branches ==="
 
   for BRANCH in ${RM_BRANCHES}; do
-    echo -n "${BRANCH}"
+    # Prefix + padded branch column for readability
+    printf " ↳ %-32s" "${BRANCH}"
 
     local PR_STATUS="$(ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}")"
 
