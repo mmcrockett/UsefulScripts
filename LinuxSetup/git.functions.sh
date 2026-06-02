@@ -184,7 +184,7 @@ function git-ssh-add {
 
   if [[ "${SSH_STATUS}" != *"github@mmcrockett.com"* ]]; then
     echo "Adding day to ssh key for github..."
-    ssh-add-day ~/.ssh/githubpw
+    ssh-add -t 1D ~/.ssh/githubpw
   fi
 }
 function git {
