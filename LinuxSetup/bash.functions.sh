@@ -36,6 +36,24 @@ function weeklyUpdate {
     fi
   fi
 }
+function brew-update-daily {
+  command -v brew >/dev/null 2>&1 || return 0
+
+  local TODAY
+  TODAY="$(date +%F)"
+
+  local STAMP_FILE="${TMPDIR:-/tmp}/brew-update.last"
+
+  if [ -f "${STAMP_FILE}" ] && [ "$(cat "${STAMP_FILE}")" = "${TODAY}" ]; then
+    return 0
+  fi
+
+  echo "Running daily Homebrew update..."
+  # if brew update >/dev/null 2>&1; then
+  if brew update -q; then
+    echo "${TODAY}" > "${STAMP_FILE}"
+  fi
+}
 function updateScripts {
   local HERE="${PWD}"
   logCmnd cd ${LINUX_SETUP_DIR}/..
