@@ -150,13 +150,13 @@ function git-branch-history {
       add|rm|-d|-D)
         local T="$(mktemp)"
 
-        grep -vw "${BRANCH}" "${F}" > "${T}"
+        grep -vw "^${BRANCH}$" "${F}" > "${T}" || true
         mv "${T}" "${F}";;
       last)
         local LAST=""
 
         if [ -n "${BRANCH}" ]; then
-          LAST="$(grep -vw "${BRANCH}" "${F}" | tail -n 1)"
+          LAST="$(grep -vw "^${BRANCH}$" "${F}" | tail -n 1)"
         else
           LAST="$(tail -n 1 ${F})"
         fi

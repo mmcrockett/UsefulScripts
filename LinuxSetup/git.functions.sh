@@ -10,6 +10,8 @@ function git-rm-merged-local-branches {
 
   git checkout ${MAIN_BRANCH} > /dev/null 2>&1 || return $?
 
+  echo "=== Checking for merged and closed branches ==="
+
   for BRANCH in ${RM_BRANCHES}; do
     echo -n "${BRANCH}"
 
@@ -25,8 +27,8 @@ function git-rm-merged-local-branches {
         [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
 
         echo -n " ${STATE_ICON}"
-        git-branch-history rm ${BRANCH}
-        git branch -D ${BRANCH}
+        git branch -D ${BRANCH} > /dev/null 2>&1 || return $?
+        git-branch-history rm ${BRANCH} > /dev/null 2>&1 || return $?
         TRASH=" 🗑"
       elif [[ "${PR_STATE}" == *"OPEN"* ]]; then
         echo -n " 🔀"
@@ -38,8 +40,11 @@ function git-rm-merged-local-branches {
     else
       echo -n " 🟡"
     fi
+
     echo
   done
+
+  echo "=== completed ==="
 }
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
@@ -168,7 +173,22 @@ function git-push-open-pr {
   rm -f "${TMP_OUT}"
   return ${PUSH_STATUS}
 }
+function git-ssh-add {
+  local SSH_STATUS="$(ssh-add -l 2>&1)"
+
+  if [[ "${SSH_STATUS}" == *"Could not open a connection to your authentication agent"* ]]; then
+    echo "Starting ssh-agent..."
+    eval "$(ssh-agent -s)"
+  fi
+
+  if [[ "${SSH_STATUS}" != *"github@mmcrockett.com"* ]]; then
+    echo "Adding day to ssh key for github..."
+    ssh-add-day ~/.ssh/githubpw
+  fi
+}
 function git {
+  git-ssh-add
+
   # Only expand args for git commands that deal with paths or branches
   case $1 in
     commit|blame|add|log|rebase|merge|difftool|switch)
