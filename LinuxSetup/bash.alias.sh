@@ -45,7 +45,7 @@ function claude {
   local last_dir="${PWD##*/}"
 
   if [[ $# -gt 0 && "$1" != -* ]]; then
-    command claude --name "${last_dir} $*" "$@"
+    command claude --name "${last_dir} $*" "$*"
   else
     command claude --name "${last_dir}" "$@"
   fi
