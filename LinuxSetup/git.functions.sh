@@ -1,6 +1,7 @@
 function git-rm-merged-local-branches {
   local MAIN_BRANCH="$(git-default-branch-name)"
   local RM_BRANCHES="$($_git_cmd branch | grep -v "${MAIN_BRANCH}")"
+  local GHCLI_CHECK="$(command -v ghcli)"
 
   local -a GHCLI_OPTS=(
     "--state" "all"
@@ -8,44 +9,49 @@ function git-rm-merged-local-branches {
     "--template" '{{range .}}#{{.state}}|{{.url}}{{if .mergedAt}} {{.mergedAt}}{{else if .closedAt}} {{.closedAt}}{{end}}{{end}}'
   )
 
-  git checkout ${MAIN_BRANCH} > /dev/null 2>&1 || return $?
+  git checkout "${MAIN_BRANCH}" > /dev/null 2>&1 || return $?
 
-  echo "=== Checking for merged and closed branches ==="
+  if [ -z "${GHCLI_CHECK}" ]; then
+    echo "Skipping PR status checks - ensure `gh` is installed with brew and then aliased to `ghcli`."
+  else
+    echo "=== Checking for merged and closed branches ==="
 
-  for BRANCH in ${RM_BRANCHES}; do
-    # Prefix + padded branch column for readability
-    printf " ↳ %-32s" "${BRANCH}"
+    for BRANCH in ${RM_BRANCHES}; do
+      # Prefix + padded branch column for readability
+      printf " ↳ %-32s" "${BRANCH}"
 
-    local PR_STATUS="$(ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}")"
+      local PR_STATUS
+      PR_STATUS="$(command -v ghcli && ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}")"
 
-    if [ -n "${PR_STATUS}" ]; then
-      local PR_STATE="${PR_STATUS%%|*}"
-      local PR_INFO="${PR_STATUS##*|}"
-      local TRASH=""
+      if [ -n "${PR_STATUS}" ]; then
+        local PR_STATE="${PR_STATUS%%|*}"
+        local PR_INFO="${PR_STATUS##*|}"
+        local TRASH=""
 
-      if [[ "${PR_STATE}" == *"MERGED"* || "${PR_STATE}" == *"CLOSED"* ]]; then
-        local STATE_ICON="⛔"
-        [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
+        if [[ "${PR_STATE}" == *"MERGED"* || "${PR_STATE}" == *"CLOSED"* ]]; then
+          local STATE_ICON="⛔"
+          [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
 
-        echo -n " ${STATE_ICON}"
-        git branch -D ${BRANCH} > /dev/null 2>&1 || return $?
-        git-branch-history rm ${BRANCH} > /dev/null 2>&1 || return $?
-        TRASH=" 🗑"
-      elif [[ "${PR_STATE}" == *"OPEN"* ]]; then
-        echo -n " 🔀"
+          echo -n " ${STATE_ICON}"
+          git branch -D "${BRANCH}" > /dev/null 2>&1 || return $?
+          git-branch-history rm "${BRANCH}" > /dev/null 2>&1 || return $?
+          TRASH=" 🗑"
+        elif [[ "${PR_STATE}" == *"OPEN"* ]]; then
+          echo -n " 🔀"
+        else
+          echo -n " ${PR_STATE}"
+        fi
+
+        echo -n " ${PR_INFO}${TRASH}"
       else
-        echo -n " ${PR_STATE}"
+        echo -n " 🟡"
       fi
 
-      echo -n " ${PR_INFO}${TRASH}"
-    else
-      echo -n " 🟡"
-    fi
+      echo
+    done
 
-    echo
-  done
-
-  echo "=== completed ==="
+    echo "=== completed ==="
+  fi
 }
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
