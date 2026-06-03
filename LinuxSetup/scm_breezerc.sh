@@ -15,7 +15,7 @@ export design_ext_dirs="Fonts IconSets"
 # export SCM_BREEZE_DISABLE_ASSETS_MANAGEMENT=true
 
 # vi: ft=sh
-alias gh='git checkout "$(git-default-branch-name)"'
+alias gh='git home'
 alias gl8='gl -8'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
 alias gdno='gd --name-only'

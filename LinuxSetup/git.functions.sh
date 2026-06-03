@@ -187,6 +187,15 @@ function git-ssh-add {
     ssh-add -t 1D ~/.ssh/githubpw
   fi
 }
+function git-is-worktree {
+  local GIT_DIR="$($_git_cmd rev-parse --git-dir 2>/dev/null)"
+
+  if [[ "${GIT_DIR}" == *"/.git/worktrees/"* ]]; then
+    echo "yes"
+  else
+    echo ""
+  fi
+}
 function git {
   git-ssh-add
 
@@ -212,6 +221,11 @@ function git {
         _scmb_git_checkout_shortcuts "${@:2}" && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
       fi;;
     home)
+      if [ -n "$(git-is-worktree)" ]; then
+        local MAIN_DIR="$($_git_cmd worktree list | head -1 | awk '{print $1}')"
+        cd "${MAIN_DIR}"
+      fi
+
       "$_git_cmd" checkout "$(git-default-branch-name)";;
     diff|rm|reset|restore)
       exec_scmb_expand_args --relative "$_git_cmd" "$@";;
