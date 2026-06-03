@@ -209,7 +209,7 @@ function git {
           echo "No history found."
         fi
       else
-        exec_scmb_expand_args --relative "$_git_cmd" "$@" && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
+        _scmb_git_checkout_shortcuts "${@:2}" && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
       fi;;
     home)
       "$_git_cmd" checkout "$(git-default-branch-name)";;
