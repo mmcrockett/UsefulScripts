@@ -739,6 +739,13 @@ function ps-find {
     ps -A | grep "${NAME}" | grep --invert 'grep'
   fi
 }
+function codium {
+  if [ $PWD == WORKSPACE_HOME ]; then
+    /opt/homebrew/bin/codium weinfuse.code-workspace
+  else
+    /opt/homebrew/bin/codium .
+  fi
+}
 
 [[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
 [[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"
