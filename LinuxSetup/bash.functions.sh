@@ -770,6 +770,43 @@ function codium {
     /opt/homebrew/bin/codium .
   fi
 }
+function to_24h_compact {
+  local t="${1//[[:space:]]/}"
+  local h="${t%%.*}"
+  local r="${t#*.}"
+  local m="${r%%.*}"
+  local s_ampm="${r#*.}"
+  local s="${s_ampm%??}"
+  local ampm="${s_ampm: -2}"
+
+  h=$((10#$h % 12))
+
+  [[ "$ampm" == "PM" ]] && h=$((h + 12))
+
+  printf '%02d%s%s' "${h}" "${m}" "${s}"
+}
+function screenshotRenamer {
+  local FOLDER=~/tmp
+
+  fswatch ${FOLDER} | while read file; do
+    file_name="$(basename "$file")"
+
+    if [[ "$file_name" == ss\ 20* ]]; then
+      ext="${file_name##*.}"
+      dir="$(dirname "$file")"
+      no_ext="${file_name%%.${ext}}"
+
+      date_part="${no_ext%% at *}"
+      time_part="${no_ext#* at }"
+      time_part="$(to_24h_compact "${time_part}")"
+      date_part="${date_part#* }"
+
+      new_name="ss-${date_part//-/}-${time_part}.${ext}"
+
+      mv "$file" "${dir}/${new_name}"
+    fi
+  done
+}
 
 [[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
 [[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"
