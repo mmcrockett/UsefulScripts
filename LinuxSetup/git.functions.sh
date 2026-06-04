@@ -1,6 +1,6 @@
 function git-rm-merged-local-branches {
   local MAIN_BRANCH="$(git-default-branch-name)"
-  local RM_BRANCHES="$($_git_cmd branch | grep -v "${MAIN_BRANCH}")"
+  local RM_BRANCHES="$($_git_cmd branch --format='%(refname:short)' | grep -v "${MAIN_BRANCH}")"
   local GHCLI_CHECK="$(command -v ghcli)"
 
   local -a GHCLI_OPTS=(
@@ -9,7 +9,7 @@ function git-rm-merged-local-branches {
     "--template" '{{range .}}#{{.state}}|{{.url}}{{if .mergedAt}} {{.mergedAt}}{{else if .closedAt}} {{.closedAt}}{{end}}{{end}}'
   )
 
-  git checkout "${MAIN_BRANCH}" > /dev/null 2>&1 || return $?
+  logCmndQuiet git checkout "${MAIN_BRANCH}" || return $?
 
   if [ -z "${GHCLI_CHECK}" ]; then
     echo "Skipping PR status checks - ensure `gh` is installed with brew and then aliased to `ghcli`."
@@ -21,7 +21,7 @@ function git-rm-merged-local-branches {
       printf " ↳ %-32s" "${BRANCH}"
 
       local PR_STATUS
-      PR_STATUS="$(command -v ghcli && ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}")"
+      PR_STATUS="$(command -v ghcli >/dev/null 2>&1 && ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}")"
 
       if [ -n "${PR_STATUS}" ]; then
         local PR_STATE="${PR_STATUS%%|*}"
@@ -33,8 +33,8 @@ function git-rm-merged-local-branches {
           [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
 
           echo -n " ${STATE_ICON}"
-          git branch -D "${BRANCH}" > /dev/null 2>&1 || return $?
-          git-branch-history rm "${BRANCH}" > /dev/null 2>&1 || return $?
+          logCmndQuiet git branch -D "${BRANCH}" || return $?
+          logCmndQuiet git-branch-history rm "${BRANCH}" || return $?
           TRASH=" 🗑"
         elif [[ "${PR_STATE}" == *"OPEN"* ]]; then
           echo -n " 🔀"
@@ -62,16 +62,18 @@ function git-handle-pr-merged {
     BRANCH="${1}"
   fi
 
-  logCmnd git checkout ${BRANCH} || return $?
+  logCmndQuiet git checkout ${BRANCH} || return $?
 
   if [ -z "${IS_FORK}" ]; then
-    logCmnd git pull
+    logCmndQuiet git pull
   else
     logCmnd git-resync-main-repo ${BRANCH} || return $?
   fi
 
-  logCmnd git remote prune origin
+  logCmndQuiet git remote prune origin
+  echo
   logCmnd git-rm-merged-local-branches || return $?
+  echo
 }
 function git-rebase-all {
   local MAIN_BRANCH="$(git-default-branch-name)"
@@ -105,8 +107,8 @@ function git-resync-main-repo {
     abort "Not on the ${BRANCH} branch."
   else
     logCmnd git fetch upstream || (echo "FIX try 'git remote add upstream git@github.com:Example/Sample.git'" && return $?)
-    logCmnd git pull upstream ${BRANCH} || return $?
-    logCmnd git push origin || return $?
+    logCmndQuiet git pull upstream ${BRANCH} || return $?
+    logCmndQuiet git push origin || return $?
   fi
 }
 function git-force-push-branch {

@@ -13,6 +13,22 @@ function information { if [ -t 1 ]; then echo 1>&2 "$(identifier):" "${@}"; fi; 
 function warning { echo 1>&2 "$(identifier):!WARNING:" "${@}"; }
 function logArgs { echo 1>&2 "$(identifier):" "${@}"; }
 function logCmnd { echo 1>&2 "$(identifier):$(printf ' %q' "${@}")"; "${@}"; }
+function logCmndQuiet {
+  local _CMD_STR
+  _CMD_STR="$(printf ' %q' "${@}")"
+
+  printf 1>&2 "%s:%s ... " "$(identifier)" "${_CMD_STR}"
+  "${@}" > /dev/null 2>&1
+  local _STATUS=$?
+
+  if [ ${_STATUS} -eq 0 ]; then
+    echo 1>&2 "✔"
+  else
+    echo 1>&2 "✖"
+  fi
+
+  return ${_STATUS}
+}
 function directoryExists { if [ ! -d "${1}" ]; then abort "Cannot find directory '${1}'. Ensure directory exists."; fi }
 function usage() { if [ -n "${@}" ]; then printf '%s\n' "Usage: ${SCRIPT} ${@}" 1>&2; return 1; fi }
 function weeklyUpdate {
