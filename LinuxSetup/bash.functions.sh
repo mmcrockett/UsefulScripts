@@ -49,9 +49,17 @@ function brew-update-daily {
   fi
 
   echo "Running daily Homebrew update..."
-  # if brew update >/dev/null 2>&1; then
   if brew update -q; then
     echo "${TODAY}" > "${STAMP_FILE}"
+
+    local OUTDATED_PACKAGES="$(brew outdated --quiet)"
+
+    if [ -n "${OUTDATED_PACKAGES}" ]; then
+      echo "Upgrading Homebrew packages: ${OUTDATED_PACKAGES}"
+      nohup brew upgrade -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
+    else
+      echo "All Homebrew packages are up to date."
+    fi
   fi
 }
 function updateScripts {
