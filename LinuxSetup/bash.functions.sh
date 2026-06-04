@@ -785,6 +785,12 @@ function to_24h_compact {
 
   printf '%02d%s%s' "${h}" "${m}" "${s}"
 }
+# in .bashrc Start screenshotRenamer once per login shell
+#if [[ $- == *i* ]] && command -v fswatch >/dev/null 2>&1; then
+# if ! pgrep -f "fswatch ${HOME}/tmp" >/dev/null 2>&1; then
+#   ( screenshotRenamer ) >/tmp/screenshotRenamer.out.log 2>/tmp/screenshotRenamer.err.log & disown
+# fi
+#fi
 function screenshotRenamer {
   local FOLDER=~/tmp
 
