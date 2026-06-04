@@ -33,8 +33,8 @@ function git-rm-merged-local-branches {
           [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
 
           echo -n " ${STATE_ICON}"
-          logCmndQuiet git branch -D "${BRANCH}" || return $?
-          logCmndQuiet git-branch-history rm "${BRANCH}" || return $?
+          git branch -D "${BRANCH}" > /dev/null 2>&1 || return $?
+          git-branch-history rm "${BRANCH}" > /dev/null 2>&1 || return $?
           TRASH=" 🗑"
         elif [[ "${PR_STATE}" == *"OPEN"* ]]; then
           echo -n " 🔀"
