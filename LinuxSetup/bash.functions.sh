@@ -764,7 +764,7 @@ function ps-find {
   fi
 }
 function codium {
-  if [ $PWD == WORKSPACE_HOME ]; then
+  if [ "${PWD}" == "${WORKSPACE_HOME}" ]; then
     /opt/homebrew/bin/codium weinfuse.code-workspace
   else
     /opt/homebrew/bin/codium .
@@ -813,6 +813,101 @@ function screenshotRenamer {
     fi
   done
 }
+function firefox-prune-storage {
+  local days=720
+  local do_delete=0
+  local profile="${HOME}/Library/Application Support/Firefox/Profiles/rajkkxt0.default"
 
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --days)
+        days="$2"
+        shift 2
+        ;;
+      --profile)
+        profile="$2"
+        shift 2
+        ;;
+      --delete)
+        do_delete=1
+        shift
+        ;;
+      -h|--help)
+        echo "Usage: ff-prune-storage [--days N] [--profile PATH] [--delete]"
+        return 0
+        ;;
+      *)
+        echo "ff-prune-storage: unknown arg: $1" >&2
+        return 2
+        ;;
+    esac
+  done
+
+  if [ ! -d "$profile" ]; then
+    echo "ff-prune-storage: profile path '$profile' is not a directory" >&2
+    return 1
+  fi
+
+  local storage="$profile/storage/default"
+  if [ ! -d "$storage" ]; then
+    echo "ff-prune-storage: no storage/default at $storage" >&2
+    return 1
+  fi
+
+  if [ "$do_delete" -eq 1 ]; then
+    if /usr/bin/pgrep -xq firefox || /usr/bin/pgrep -xq firefox-bin || /usr/bin/pgrep -xq Firefox; then
+      echo "ff-prune-storage: Firefox is running; quit it before --delete." >&2
+      return 1
+    fi
+  fi
+
+  local cutoff
+  cutoff=$(/bin/date -v-"${days}"d +%s) || return 1
+
+  local stage=""
+  if [ "$do_delete" -eq 1 ]; then
+    stage="/tmp/ff-prune-$(/bin/date +%s)"
+    /bin/mkdir -p "$stage" || return 1
+  fi
+
+  local count=0
+  local d newest
+
+  for d in "$storage"/*/; do
+    local name="${d%/}"
+    name="${name##*/}"
+
+    case "$name" in
+      moz-extension*)
+        continue
+        ;;
+    esac
+
+    newest=$(
+      /usr/bin/find "$d" -type f -exec /usr/bin/stat -f '%m' {} + 2>/dev/null \
+        | /usr/bin/sort -n \
+        | /usr/bin/tail -1
+    )
+
+    if [ -z "$newest" ] || [ "$newest" -lt "$cutoff" ]; then
+      local when="empty"
+      [ -n "$newest" ] && when=$(/bin/date -r "$newest" '+%Y-%m-%d')
+
+      if [ "$do_delete" -eq 1 ]; then
+        /bin/mv "$d" "$stage/" && count=$((count + 1))
+      else
+        printf '%s  %s\n' "$when" "$name"
+        count=$((count + 1))
+      fi
+    fi
+  done
+
+  if [ "$do_delete" -eq 1 ]; then
+    echo "Moved $count folders to $stage"
+  else
+    echo "---"
+    echo "$count stale non-extension origins (>${days} days). Re-run with --delete to move them to /tmp."
+  fi
+}
 [[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
 [[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"

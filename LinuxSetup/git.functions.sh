@@ -14,6 +14,12 @@ function git-rm-merged-local-branches {
   if [ -z "${GHCLI_CHECK}" ]; then
     echo "Skipping PR status checks - ensure `gh` is installed with brew and then aliased to `ghcli`."
   else
+    local GHCLI_ERR="$(ghcli --version 2>&1)"
+
+    if [[ "${GHCLI_ERR}" == *"Permission denied"* ]]; then
+      brew reinstall gh > /dev/null 2>&1 || (echo "Failed to reinstall gh, check brew and gh installation." && return $?)
+    fi
+
     echo "=== Checking for merged and closed branches ==="
 
     for BRANCH in ${RM_BRANCHES}; do
@@ -63,6 +69,8 @@ function git-handle-pr-merged {
   fi
 
   logCmndQuiet git checkout ${BRANCH} || return $?
+
+  git-ssh-add
 
   if [ -z "${IS_FORK}" ]; then
     logCmndQuiet git pull
@@ -192,7 +200,7 @@ function git-ssh-add {
 
   if [[ "${SSH_STATUS}" != *"github@mmcrockett.com"* ]]; then
     echo "Adding day to ssh key for github..."
-    ssh-add -t 1D ~/.ssh/githubpw
+    ssh-add -t 14h ~/.ssh/githubpw
   fi
 }
 function git-is-worktree {
@@ -205,8 +213,6 @@ function git-is-worktree {
   fi
 }
 function git {
-  git-ssh-add
-
   # Only expand args for git commands that deal with paths or branches
   case $1 in
     commit|blame|add|log|rebase|merge|difftool|switch)
@@ -240,6 +246,7 @@ function git {
     branch)
       _scmb_git_branch_shortcuts "${@:2}";;
     push)
+      git-ssh-add
       git-push-open-pr "$@";;
     *)
       "$_git_cmd" "$@";;
