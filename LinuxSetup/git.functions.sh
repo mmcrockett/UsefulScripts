@@ -1,3 +1,6 @@
+function ghcli {
+  "$(brew --prefix)/bin/gh" "$@"
+}
 function git-ghcli-preflight {
   if [ -z "$(command -v ghcli)" ]; then
     echo "Skipping PR status checks - ensure `gh` is installed with brew and then aliased to `ghcli`."
@@ -17,6 +20,8 @@ function git-pr-status-for-branch {
     "--json" "state,mergedAt,closedAt,url"
     "--template" '{{range .}}#{{.state}}|{{.url}}{{if .mergedAt}} {{.mergedAt}}{{else if .closedAt}} {{.closedAt}}{{end}}{{end}}'
   )
+
+  git-ghcli-preflight || return 1
 
   command -v ghcli >/dev/null 2>&1 && ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}"
 }
@@ -71,8 +76,6 @@ function git-rm-merged-local-branches {
   local RM_BRANCHES="$($_git_cmd branch --format='%(refname:short)' | grep -v "${MAIN_BRANCH}")"
 
   logCmndQuiet git checkout "${MAIN_BRANCH}" || return $?
-
-  git-ghcli-preflight || return 0
 
   echo "=== Checking for merged and closed branches ==="
 
