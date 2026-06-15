@@ -19,7 +19,6 @@ alias gh='git home'
 alias gl8='gl -8'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
 alias gdno='gd --name-only'
-alias gwt='git worktree'
 
 function git-commit-wip {
   GIT_HOOKS_OFF=true git add -A
