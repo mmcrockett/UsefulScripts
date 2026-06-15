@@ -5,6 +5,11 @@ enum layers {
     _LOWER,
 };
 
+enum custom_keycodes {
+    K_EQL_PLUS = SAFE_RANGE,   // tap: =, hold: +
+    K_MINS_UNDS,               // tap: -, hold: _
+};
+
 // Tap = Escape, Hold = Left Ctrl
 #define MT_ESC  MT(MOD_LCTL, KC_ESC)
 // Tap = Enter, Hold = LOWER layer
@@ -27,18 +32,18 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      *              `----------------------------------'              `----------------------------------'
      */
     [_BASE] = LAYOUT(
-        KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS,
-        KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,                      KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
-        MT_ESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,                      KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
-        KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                      KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RCTL,
-                                   KC_SPC,  KC_BSPC, KC_LBRC, KC_LGUI, LT_ENT, KC_LALT, KC_RBRC, KC_LGUI
+        KC_GRV,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                               KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_MINS,
+        KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,                               KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_BSLS,
+        MT_ESC,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,                               KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
+        KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,    KC_LGUI,         KC_RGUI,  KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RCTL,
+                                            KC_SPC,  KC_BSPC, KC_LBRC,         KC_RBRC,  KC_RALT, LT_ENT
     ),
 
     /* LOWER LAYER — Mouse (left) + Numpad (right)
      * ,--------------------------------------------.                    ,--------------------------------------------.
      * |      |      |      |      |      |        |                    |      |      |      |      |      |        |
      * |------+------+------+------+------+---------|                    |------+------+------+------+------+--------|
-     * |      |      |      |MsUp  |      | =/+    |                    |  +   |  7   |  8   |  9   |      |        |
+     * |RGBMod|      |      |MsUp  |      | =/+    |                    |  +   |  7   |  8   |  9   |      |        |
      * |------+------+------+------+------+---------|                    |------+------+------+------+------+--------|
      * |LClick|MsLeft|MidClk|MsRght|      |RClick  |                    |      |  4   |  5   |  6   |      |        |
      * |------+------+------+------+------+---------|                    |------+------+------+------+------+--------|
@@ -49,13 +54,44 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      *              `----------------------------------'              `----------------------------------'
      */
     [_LOWER] = LAYOUT(
-        RGB_TOG, _______, _______, _______, _______, _______,                   _______, _______, _______, _______, _______, _______,
-        RGB_MOD, _______, _______, KC_MS_U, _______, MT(MOD_LSFT, KC_EQL),     KC_PLUS, KC_7,    KC_8,    KC_9,    _______, _______,
-        KC_BTN1, KC_MS_L, KC_BTN3, KC_MS_R, _______, KC_BTN2,                  _______, KC_4,    KC_5,    KC_6,    _______, _______,
-        _______, _______, _______, KC_MS_D, _______, MT(MOD_LSFT, KC_MINS),    KC_PLUS, KC_1,    KC_2,    KC_3,    KC_PLUS, _______,
-                                   _______, _______, _______, KC_LGUI, _______, KC_DOT,  KC_0,    _______
+        UG_TOGG, _______, _______, _______, _______, _______,                                       _______, _______, _______, _______, _______, _______,
+        UG_NEXT, _______, _______, MS_UP,   _______, K_EQL_PLUS,                                   KC_PLUS, KC_7,    KC_8,    KC_9,    _______, _______,
+        _______, MS_BTN1, MS_LEFT, MS_BTN3, MS_RGHT, MS_BTN2,                                       _______, KC_4,    KC_5,    KC_6,    _______, _______,
+        _______, _______, _______, MS_DOWN, _______, K_MINS_UNDS,           _______,       _______, KC_PLUS, KC_1,    KC_2,    KC_3,    KC_PLUS, _______,
+                                            _______, _______, _______,                    _______, KC_DOT,  KC_0
     ),
 };
+
+// Custom tap/hold: tap emits the unshifted key, hold emits the shifted key.
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    static uint16_t eql_timer;
+    static uint16_t mins_timer;
+    switch (keycode) {
+        case K_EQL_PLUS:
+            if (record->event.pressed) {
+                eql_timer = timer_read();
+            } else {
+                if (timer_elapsed(eql_timer) < TAPPING_TERM) {
+                    tap_code16(KC_EQL);
+                } else {
+                    tap_code16(S(KC_EQL));   // shift+= → +
+                }
+            }
+            return false;
+        case K_MINS_UNDS:
+            if (record->event.pressed) {
+                mins_timer = timer_read();
+            } else {
+                if (timer_elapsed(mins_timer) < TAPPING_TERM) {
+                    tap_code16(KC_MINS);
+                } else {
+                    tap_code16(S(KC_MINS));  // shift+- → _
+                }
+            }
+            return false;
+    }
+    return true;
+}
 
 // Encoder: base layer = left/right arrows, lower layer = up/down arrows
 bool encoder_update_user(uint8_t index, bool clockwise) {
