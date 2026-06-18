@@ -1,13 +1,22 @@
+function gwta {
+  local BRANCH="${1}"
+
+  if [[ -n "${BRANCH}" && "${BRANCH}" != -* && "${BRANCH}" != *"${USER}"* ]]; then
+    BRANCH="${USER}/${BRANCH}"
+  fi
+
+  gwtadd "${BRANCH}"
+}
 function ghcli {
   "$(brew --prefix)/bin/gh" "$@"
 }
 function git-ghcli-preflight {
-  if [ -z "$(command -v ghcli)" ]; then
+  if ! command -v gh >/dev/null 2>&1; then
     echo "Skipping PR status checks - ensure `gh` is installed with brew and then aliased to `ghcli`."
     return 1
   fi
 
-  local GHCLI_ERR="$(ghcli --version 2>&1)"
+  local GHCLI_ERR="$(gh --version 2>&1)"
 
   if [[ "${GHCLI_ERR}" == *"Permission denied"* ]]; then
     brew reinstall gh > /dev/null 2>&1 || (echo "Failed to reinstall gh, check brew and gh installation." && return $?)
@@ -75,6 +84,8 @@ function git-rm-merged-local-branches {
   local MAIN_BRANCH="$(git-default-branch-name)"
   local RM_BRANCHES="$($_git_cmd branch --format='%(refname:short)' | grep -v "${MAIN_BRANCH}")"
 
+  git-ghcli-preflight || return 1
+
   logCmndQuiet git checkout "${MAIN_BRANCH}" || return $?
 
   echo "=== Checking for merged and closed branches ==="
@@ -104,11 +115,6 @@ function git-handle-pr-merged {
   else
     logCmnd git-resync-main-repo ${BRANCH} || return $?
   fi
-
-  logCmndQuiet git remote prune origin
-  echo
-  logCmnd git-rm-merged-local-branches || return $?
-  echo
 }
 function git-rebase-all {
   local MAIN_BRANCH="$(git-default-branch-name)"
@@ -240,18 +246,16 @@ function git-is-worktree {
   fi
 }
 function git {
-  # Only expand args for git commands that deal with paths or branches
   case $1 in
-    commit|blame|add|log|rebase|merge|difftool|switch)
-      exec_scmb_expand_args "$_git_cmd" "$@";;
     checkout)
       local START_BRANCH="$(git-current-branch)"
 
-      if [[ "-" == ${2} ]]; then
-        local NEXT_BRANCH="$(git-branch-history last ${START_BRANCH})"
+      if [[ "-" == "${2}" ]]; then
+        local NEXT_BRANCH="$(git-branch-history last "${START_BRANCH}")"
         if [ -n "${NEXT_BRANCH}" ]; then
-          if [ -z "$(git-is-current-branch ${NEXT_BRANCH})" ]; then
-            "$_git_cmd" checkout ${NEXT_BRANCH} && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
+          if [ -z "$(git-is-current-branch "${NEXT_BRANCH}")" ]; then
+            "$_git_cmd" checkout "${NEXT_BRANCH}" \
+              && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
           else
             echo "Already on branch ${NEXT_BRANCH}."
           fi
@@ -259,24 +263,23 @@ function git {
           echo "No history found."
         fi
       else
-        _scmb_git_checkout_shortcuts "${@:2}" && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
-      fi;;
+        __scmb_git checkout "${@:2}" && git-record-branch-switch "${START_BRANCH}" "$(git-current-branch)"
+      fi
+      ;;
     home)
       if [ -n "$(git-is-worktree)" ]; then
-        local MAIN_DIR="$($_git_cmd worktree list | head -1 | awk '{print $1}')"
+        local MAIN_DIR="$("$_git_cmd" worktree list | head -1 | awk '{print $1}')"
         cd "${MAIN_DIR}"
       fi
-
-      "$_git_cmd" checkout "$(git-default-branch-name)";;
-    diff|rm|reset|restore)
-      exec_scmb_expand_args --relative "$_git_cmd" "$@";;
-    branch)
-      _scmb_git_branch_shortcuts "${@:2}";;
+      "$_git_cmd" checkout "$(git-default-branch-name)"
+      ;;
     push)
       git-ssh-add
-      git-push-open-pr "$@";;
+      git-push-open-pr "$@"
+      ;;
     *)
-      "$_git_cmd" "$@";;
+      __scmb_git "$@"
+      ;;
   esac
 }
 function git-take-rebase-commit {
