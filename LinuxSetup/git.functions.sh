@@ -8,17 +8,24 @@ function gwta {
   gwtadd "${BRANCH}"
 }
 function ghcli {
-  "$(brew --prefix)/bin/gh" "$@"
+  git-gh-preflight || return $?
+
+  "$(gh-brew)" "$@"
 }
-function git-ghcli-preflight {
-  if ! command -v gh >/dev/null 2>&1; then
-    echo "Skipping PR status checks - ensure `gh` is installed with brew and then aliased to `ghcli`."
+function gh-brew {
+  "$(brew --prefix)/bin/gh"
+}
+function git-gh-preflight {
+  local GH_LOC="$(gh-brew)"
+
+  if ! command -v "${GH_LOC}" >/dev/null 2>&1; then
+    echo "Skipping PR status checks - ensure \`gh\` is installed with brew and then aliased to \`ghcli\`."
     return 1
   fi
 
-  local GHCLI_ERR="$(gh --version 2>&1)"
+  local GH_ERR="$("${GH_LOC}" --version 2>&1)"
 
-  if [[ "${GHCLI_ERR}" == *"Permission denied"* ]]; then
+  if [[ "${GH_ERR}" == *"Permission denied"* ]]; then
     brew reinstall gh > /dev/null 2>&1 || (echo "Failed to reinstall gh, check brew and gh installation." && return $?)
   fi
 }
@@ -29,8 +36,6 @@ function git-pr-status-for-branch {
     "--json" "state,mergedAt,closedAt,url"
     "--template" '{{range .}}#{{.state}}|{{.url}}{{if .mergedAt}} {{.mergedAt}}{{else if .closedAt}} {{.closedAt}}{{end}}{{end}}'
   )
-
-  git-ghcli-preflight || return 1
 
   command -v ghcli >/dev/null 2>&1 && ghcli pr list --head "${BRANCH}" "${GHCLI_OPTS[@]}"
 }
@@ -83,8 +88,6 @@ function git-prune-branch-by-pr-status {
 function git-rm-merged-local-branches {
   local MAIN_BRANCH="$(git-default-branch-name)"
   local RM_BRANCHES="$($_git_cmd branch --format='%(refname:short)' | grep -v "${MAIN_BRANCH}")"
-
-  git-ghcli-preflight || return 1
 
   logCmndQuiet git checkout "${MAIN_BRANCH}" || return $?
 
