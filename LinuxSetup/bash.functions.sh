@@ -78,6 +78,68 @@ function brew-update-daily {
     fi
   fi
 }
+function prune-claude {
+  local FORCE=0
+  local DAYS=90
+  local ARG
+  for ARG in "$@"; do
+    case "${ARG}" in
+      -f|--force) FORCE=1 ;;
+      ''|*[!0-9]*) ;;
+      *) DAYS="${ARG}" ;;
+    esac
+  done
+
+  local PLANS_DIR="${HOME}/.claude/plans"
+  local PROJECTS_DIR="${HOME}/.claude/projects"
+
+  if [ "${FORCE}" -eq 1 ]; then
+    echo "prune-claude: DELETING items older than ${DAYS}d"
+  else
+    echo "prune-claude: DRY-RUN (older than ${DAYS}d) — re-run with --force to apply"
+  fi
+
+  # 1. In-repo .claude/plans symlinks that are dangling or point at a plan we're
+  #    about to prune. Scans ${HOME} broadly; node_modules/.git/Library/.Trash are
+  #    pruned only for speed (a repo plan-symlink can never live in them).
+  echo "── stale plan symlinks ──"
+  find "${HOME}" \
+       \( -name node_modules -o -name .git -o -name Library -o -name .Trash \) -prune -o \
+       -type l -path '*/.claude/plans/*' \
+       -exec sh -c '
+         DAYS="$1"; FORCE="$2"; PLANS="$3"; shift 3
+         for LINK in "$@"; do
+           if [ -e "${LINK}" ]; then
+             TGT="$(readlink "${LINK}")"
+             case "${TGT}" in
+               "${PLANS}"/*) [ -n "$(find "${TGT}" -maxdepth 0 -mtime +"${DAYS}" 2>/dev/null)" ] || continue ;;
+               *) continue ;;
+             esac
+           fi
+           if [ "${FORCE}" = 1 ]; then
+             rm -f "${LINK}" && echo "  🔗✗ ${LINK}"
+           else
+             echo "  ${LINK}"
+           fi
+         done
+       ' sh "${DAYS}" "${FORCE}" "${PLANS_DIR}" {} + 2>/dev/null
+
+  # 2. Global plan files older than the threshold.
+  echo "── plans (${PLANS_DIR}) ──"
+  if [ "${FORCE}" -eq 1 ]; then
+    find "${PLANS_DIR}" -maxdepth 1 -type f -name '*.md' -mtime +"${DAYS}" -print -delete 2>/dev/null
+  else
+    find "${PLANS_DIR}" -maxdepth 1 -type f -name '*.md' -mtime +"${DAYS}" -print 2>/dev/null
+  fi
+
+  # 3. Per-project state dirs (sessions + memory) untouched past the threshold.
+  echo "── projects (${PROJECTS_DIR}) ──"
+  if [ "${FORCE}" -eq 1 ]; then
+    find "${PROJECTS_DIR}" -mindepth 1 -maxdepth 1 -type d -mtime +"${DAYS}" -print -exec rm -rf {} + 2>/dev/null
+  else
+    find "${PROJECTS_DIR}" -mindepth 1 -maxdepth 1 -type d -mtime +"${DAYS}" -print 2>/dev/null
+  fi
+}
 function updateScripts {
   local HERE="${PWD}"
   logCmnd cd ${LINUX_SETUP_DIR}/..
@@ -908,6 +970,72 @@ function firefox-prune-storage {
     echo "---"
     echo "$count stale non-extension origins (>${days} days). Re-run with --delete to move them to /tmp."
   fi
+}
+# Tint a worktree's VSCode window so multiple worktrees are visually distinct.
+# Color is stable per branch name (same branch -> same color every time).
+vscode_worktree_tint() {
+  local wt_path="${1:-$PWD}"
+  local branch="$2"
+  [ -d "$wt_path" ] || { echo "vscode_worktree_tint: no such dir: $wt_path" >&2; return 1; }
+
+  # Curated palette: dark backgrounds that read well with light foreground.
+  local palette=(
+    "#5c2e2e" "#5c4a2e" "#2e5c2e" "#2e5c5c"
+    "#2e3e5c" "#3e2e5c" "#5c2e5c" "#5c2e44"
+    "#44475a" "#3a5c2e" "#5c3a2e" "#2e5c4a"
+  )
+
+  # Stable hash of the branch name -> palette index.
+  local hash idx bg
+  hash=$(cksum <<<"$branch" | cut -d' ' -f1)
+  idx=$(( hash % ${#palette[@]} ))
+  bg="${palette[$idx]}"
+  # NOTE: zsh arrays are 1-indexed; bash is 0-indexed. The line above is for
+  # bash (your shell). For zsh use: bg="${palette[$((idx + 1))]}"
+
+  local fg="#ffffff"
+  local vscode_dir="$wt_path/.vscode"
+  local settings="$vscode_dir/settings.json"
+  mkdir -p "$vscode_dir"
+
+  # The block we want to ensure is present.
+  local colors
+  colors=$(cat <<EOF
+{
+  "titleBar.activeBackground": "$bg",
+  "titleBar.activeForeground": "$fg",
+  "titleBar.inactiveBackground": "$bg",
+  "titleBar.inactiveForeground": "$fg",
+  "activityBar.background": "$bg",
+  "activityBar.foreground": "$fg",
+  "statusBar.background": "$bg",
+  "statusBar.foreground": "$fg"
+}
+EOF
+)
+
+  if [ -s "$settings" ] && command -v jq >/dev/null 2>&1; then
+    # Merge into existing settings without clobbering other keys.
+    local tmp
+    tmp=$(mktemp)
+    if jq --argjson c "$colors" '. + {"workbench.colorCustomizations": $c}' \
+         "$settings" >"$tmp" 2>/dev/null; then
+      mv "$tmp" "$settings"
+    else
+      rm -f "$tmp"
+      echo "__worktree_tint: $settings isn't valid JSON, leaving it alone" >&2
+      return 1
+    fi
+  else
+    # No existing settings (or no jq) -> write a fresh file.
+    cat >"$settings" <<EOF
+{
+  "workbench.colorCustomizations": $colors
+}
+EOF
+  fi
+
+  echo "Tinted $wt_path -> $bg (branch: $branch)"
 }
 [[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
 [[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"

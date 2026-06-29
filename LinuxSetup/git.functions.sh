@@ -5,7 +5,7 @@ function gwta {
     BRANCH="${USER}/${BRANCH}"
   fi
 
-  gwtadd "${BRANCH}"
+  gwtadd "${BRANCH}" && git checkout "${BRANCH}" && vscode_worktree_tint "$PWD" "${BRANCH}"
 }
 function ghcli {
   git-gh-preflight || return $?
@@ -13,7 +13,7 @@ function ghcli {
   "$(gh-brew)" "$@"
 }
 function gh-brew {
-  "$(brew --prefix)/bin/gh"
+  echo "$(brew --prefix)/bin/gh"
 }
 function git-gh-preflight {
   local GH_LOC="$(gh-brew)"
