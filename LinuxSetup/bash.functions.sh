@@ -1037,5 +1037,12 @@ EOF
 
   echo "Tinted $wt_path -> $bg (branch: $branch)"
 }
+function pbcopy {
+  if [ $# -eq 0 ]; then
+    echo "Usage (mcrockett fn): pbcopy filename" && return 1
+  else
+    cat "${1}" | command pbcopy
+  fi
+}
 [[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
 [[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"
