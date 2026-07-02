@@ -17,16 +17,15 @@ function gh-brew {
 }
 function git-gh-preflight {
   local GH_LOC="$(gh-brew)"
-
-  if ! command -v "${GH_LOC}" >/dev/null 2>&1; then
-    echo "Skipping PR status checks - ensure \`gh\` is installed with brew and then aliased to \`ghcli\`."
-    return 1
-  fi
-
   local GH_ERR="$("${GH_LOC}" --version 2>&1)"
 
   if [[ "${GH_ERR}" == *"Permission denied"* ]]; then
     brew reinstall gh > /dev/null 2>&1 || (echo "Failed to reinstall gh, check brew and gh installation." && return $?)
+  fi
+
+  if [[ "${GH_ERR}" == *"No such file"* ]]; then
+    echo "Skipping PR status checks - ensure \`gh\` is installed with brew and then aliased to \`ghcli\`."
+    return 1
   fi
 }
 function git-pr-status-for-branch {

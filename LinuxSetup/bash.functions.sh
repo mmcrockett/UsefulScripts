@@ -72,7 +72,7 @@ function brew-update-daily {
 
     if [ -n "${OUTDATED_PACKAGES}" ]; then
       echo "Upgrading Homebrew packages: ${OUTDATED_PACKAGES}"
-      nohup NONINTERACTIVE=1 brew upgrade -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
+      nohup NONINTERACTIVE=1 HOMEBREW_NO_ASK=1 brew upgrade -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
     else
       echo "All Homebrew packages are up to date."
     fi
@@ -174,9 +174,16 @@ function setupPrompt {
   else
     export PWD_PROMPT_CMD='tmp=${PWD%/*/*/*}; if [ ${#tmp} -gt 0 -a "$tmp" != "$PWD" ]; then myPWD=../${PWD:${#tmp}+1}; else myPWD=$PWD; fi'
     export USER_PROMPT_CMD='if [ ${#USER_IN_PROMPT} -gt 0 ]; then myUSER="[${USER}]@"; else myUSER=""; fi'
-    export PROMPT_COMMAND="${PWD_PROMPT_CMD};${USER_PROMPT_CMD}"
+    export TITLE_PROMPT_CMD='myDIR=${PWD##*/}; myTITLE="${myDIR:-/} — $PWD"'
+    export PROMPT_COMMAND="${PWD_PROMPT_CMD};${USER_PROMPT_CMD};${TITLE_PROMPT_CMD}"
 
-    export PS1="\[\e]2;\u@\H \$PWD\a\e[01;${COLOR}m\]\$myUSER[\$myPWD]\$\[\e[0m\] "
+    if [ -n "$SSH_CONNECTION" ] || [ -n "$SSH_TTY" ]; then
+      TITLE_HOST="\u@\H "
+    else
+      TITLE_HOST=""
+    fi
+
+    export PS1="\[\e]2;${TITLE_HOST}\$myTITLE\a\e[01;${COLOR}m\]\$myUSER[\$myPWD]\$\[\e[0m\] "
   fi
 }
 function installRvmAndRubies() {
