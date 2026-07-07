@@ -72,7 +72,7 @@ function brew-update-daily {
 
     if [ -n "${OUTDATED_PACKAGES}" ]; then
       echo "Upgrading Homebrew packages: ${OUTDATED_PACKAGES}"
-      nohup NONINTERACTIVE=1 HOMEBREW_NO_ASK=1 brew upgrade -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
+      HOMEBREW_NO_ASK=1 brew upgrade -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
     else
       echo "All Homebrew packages are up to date."
     fi
