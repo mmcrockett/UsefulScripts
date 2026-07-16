@@ -19,50 +19,7 @@ if [ -z "$(isMac)" ]; then
   alias pbcopy='xsel --primary'
 fi
 
-alias increase-fd='sudo sysctl -w fs.inotify.max_user_watches=20000 && sudo sysctl -p'
 alias bluebg="echo -ne '\e]11;#111140\e\\'"
 alias greybg="echo -ne '\e]11;#333340\e\\'"
 alias purplebg="echo -ne '\e]11;#2D004D\e\\'"
-
-# Curated dark backgrounds, one per hue region, all readable as a terminal background.
-claude_bg_shades=(
-  "#14203F" "#06302E" "#0F2A12" "#2A2205" "#2E1405"
-  "#320A16" "#2C0A2C" "#3B0A55" "#1C0F52" "#2B2E35"
-)
-
-# Emit an OSC 11 background color chosen from claude_bg_shades by hashing a path.
-function claude-bg {
-  local dir="${1:-$PWD}"
-  local idx=$(( $(cksum <<< "$dir" | cut -d ' ' -f 1) % ${#claude_bg_shades[@]} ))
-  printf '\e]11;%s\e\\' "${claude_bg_shades[$idx]}"
-}
-
 alias ssh-dh-compute="ssh -i ${HOME}/.ssh/dreamcomputeserverpw debian@208.113.128.139"
-
-function create-find-grep-aliases {
-  local FILE_ENDINGS=(
-    rb
-    js
-    html
-  )
-  local FILE_ENDING=""
-
-  for FILE_ENDING in "${FILE_ENDINGS[@]}"; do
-    alias find-grep-${FILE_ENDING}="find-grep -n '*.${FILE_ENDING}'"
-  done
-}
-
-function claude {
-  trap 'printf "\e]111\a"' RETURN
-  claude-bg
-
-  local last_dir="${PWD##*/}"
-
-  if [[ $# -gt 0 && "$1" != -* ]]; then
-    command claude --name "${last_dir} $*" "$*"
-  else
-    command claude --name "${last_dir}" "$@"
-  fi
-}
-
-create-find-grep-aliases

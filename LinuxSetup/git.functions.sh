@@ -99,6 +99,9 @@ function git-rm-merged-local-branches {
 
   echo "=== completed ==="
 }
+function git-cleanup-pr-merged {
+  git-handle-pr-merged && git-rm-merged-local-branches
+}
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="$(git-default-branch-name)"
