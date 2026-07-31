@@ -150,10 +150,7 @@ function installBrewList() {
     gnucash
     macvim
     firefox
-    thunderbird
     google-chrome
-    vox
-    mark-text
   )
   local _LIST=(
     coreutils
@@ -820,6 +817,11 @@ function screenshotRenamer {
       new_name="ss-${date_part//-/}-${time_part}.${ext}"
 
       mv "$file" "${dir}/${new_name}"
+
+      rm -f "${dir}"/ss-latest.*
+      ln -sf "${new_name}" "${dir}/ss-latest.${ext}"
+
+      find "${dir}" -maxdepth 1 -type f -name 'ss-*' -mmin +30 -delete
     fi
   done
 }
