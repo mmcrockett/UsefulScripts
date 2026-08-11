@@ -140,8 +140,10 @@ function git-default-branch-name {
   echo "$(git branch -rl '*/HEAD' | rev | cut -d/ -f1 | rev)"
 }
 function git-branch-history {
-  if [ -d "${PWD}/.git" ]; then
-    local F="${PWD}/.git/CHECKOUT_HISTORY"
+  local G="$($_git_cmd rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+
+  if [ -n "${G}" ]; then
+    local F="${G}/CHECKOUT_HISTORY"
     local C_M_D="${1}"
     local BRANCH="${2}"
     local R=""
