@@ -132,7 +132,18 @@ git_add_and_amend_commit_keys="\C-xz"     # CTRL+x, z
 # Expand numbered args for common shell commands
 shell_command_wrapping_enabled="true"
 # Here you can tweak the list of wrapped commands.
-scmb_wrapped_shell_commands=(vim emacs gedit cat rm cp mv ln cd ls less subl code)
+scmb_wrapped_shell_commands=(
+  cat
+  cd
+  cp
+  find
+  ls
+  mv
+  rg
+  rm
+  scp
+  vim
+)
 # Add numbered shortcuts to output of ls -l, just like 'git status'
 shell_ls_aliases_enabled="true"
 

@@ -821,10 +821,36 @@ function screenshotRenamer {
       rm -f "${dir}"/ss-latest.*
       ln -sf "${new_name}" "${dir}/ss-latest.${ext}"
 
+      osascript -e "set the clipboard to (POSIX file \"${dir}/${new_name}\")"
+
       find "${dir}" -maxdepth 1 -type f -name 'ss-*' -mmin +30 -delete
     fi
   done
 }
+
+# Overrides cp so any ss-latest.* arg resolves to the real screenshot
+# it's symlinked to, landing copies under their real timestamped name.
+if [[ "$(type -t cp)" == alias ]]; then
+  eval "_cp_alias_rhs=$(alias cp | sed 's/^alias cp=//')"
+  eval "__cp_original() { ${_cp_alias_rhs} \"\$@\"; }"
+  unset _cp_alias_rhs
+else
+  __cp_original() { command cp "$@"; }
+fi
+unalias cp 2>/dev/null
+
+function cp {
+  local args=("$@")
+
+  for i in "${!args[@]}"; do
+    if [[ "$(basename -- "${args[$i]}")" == ss-latest.* ]]; then
+      args[$i]="$(readlink -f -- "${args[$i]}")"
+    fi
+  done
+
+  __cp_original "${args[@]}"
+}
+
 function firefox-prune-storage {
   local days=720
   local do_delete=0
