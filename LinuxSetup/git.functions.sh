@@ -51,6 +51,25 @@ function git-rm-claude-project {
     rm -rf "${CLAUDE_DIR}" && echo -n " 🧠"
   fi
 }
+function git-rm-worktree-for-branch {
+  local BRANCH="${1}"
+  local WT_PATH="$($_git_cmd worktree list --porcelain | awk -v want="refs/heads/${BRANCH}" '
+    /^worktree / { path = substr($0, 10) }
+    /^branch /   { if ($2 == want) { print path; exit } }
+  ')"
+
+  if [ -z "${WT_PATH}" ]; then
+    return 0
+  fi
+
+  if gwtr "${BRANCH}" > /dev/null 2>&1; then
+    echo -n " 🌳"
+    return 0
+  else
+    echo -n " ⚠️ dirty worktree, skipped"
+    return 1
+  fi
+}
 function git-prune-branch-by-pr-status {
   local BRANCH="${1}"
   local PR_STATUS="${2}"
@@ -67,6 +86,12 @@ function git-prune-branch-by-pr-status {
       [[ "${PR_STATE}" == *"MERGED"* ]] && STATE_ICON="✔️"
 
       echo -n " ${STATE_ICON}"
+
+      if ! git-rm-worktree-for-branch "${BRANCH}"; then
+        echo
+        return 0
+      fi
+
       git branch -D "${BRANCH}" > /dev/null 2>&1 || return $?
       git-branch-history rm "${BRANCH}" > /dev/null 2>&1 || return $?
       TRASH=" 🗑"
