@@ -1,0 +1,16 @@
+{
+  "sunday": [
+    { "start": "9:00", "court": "ANY" },
+    { "start": "10:00", "court": "ANY" }
+  ],
+  "monday": [
+    { "start": "7:30", "court": "ANY", "duration": 90 }
+  ],
+  "tuesday": [
+    { "start": "7:30", "duration": 90 },
+    { "start": "8:00", "duration": 90 }
+  ],
+  "thursday": [
+    { "start": "7:30", "court": "ANY", "duration": 90 }
+  ]
+}
