@@ -111,12 +111,9 @@ class BallButton
       ].join(' - ')
 
       cancel_cell = if Time.parse(booking.start_time) > Time.now
-        expected_date = central_time_human(booking.start_time, format: :compact_date)
-
         <<~CANCEL_HTML
           <form method="post" action="cancel.php" class="d-flex gap-1">
             <input type="hidden" name="apt_id" value="#{booking.id}">
-            <input type="hidden" name="expected_date" value="#{expected_date}">
             <input type="text" name="confirm_date" placeholder="YYYYMMDD" size="8" required>
             <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
           </form>
@@ -223,13 +220,20 @@ class BallButton
     booking = BallButton.get(url, headers: user_token_header).parsed_response['payload']
 
     Struct.new(
-      :checkins
+      :checkins,
+      :start_time
     ).new(
-      booking['checkins']
+      booking['checkins'],
+      booking['start_time']
     )
   end
 
-  def cancel(apt_id)
+  def cancel(apt_id, confirm_date: nil)
+    if confirm_date
+      actual_date = central_time_human(booking(apt_id).start_time, format: :compact_date)
+      return 'not allowed' unless confirm_date == actual_date
+    end
+
     BallButton.post(
       "#{CANCEL_URL}/#{apt_id}",
       body: {cancel_for: 'court', apt_id: apt_id.to_s}.to_json,
@@ -303,7 +307,8 @@ elsif 'reserve-today' == ARGV[0]
   responses = @bb.reserve_today.map { |r| r.parsed_response }
   puts "responses: #{responses}"
 elsif 'cancel' == ARGV[0]
-  puts "cancel response: #{@bb.cancel(ARGV[1]).parsed_response}"
+  result = @bb.cancel(ARGV[1], confirm_date: ARGV[2])
+  puts "cancel response: #{result.respond_to?(:parsed_response) ? result.parsed_response : result}"
   puts @bb.generate_schedule
 else
   response = @bb.reserve(
