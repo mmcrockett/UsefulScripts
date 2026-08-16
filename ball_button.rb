@@ -18,6 +18,8 @@ class BallButton
   LIST_URL = "#{API_URL}/members/booking"
   RESERVE_URL = "#{API_URL}/appointment/add_book"
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
+  CHECKIN_WINDOW_BEFORE_MIN = 60
+  CHECKIN_WINDOW_AFTER_MIN = 150
 
   USERS = JSON.parse(
     File.read("#{__dir__}/ball_button.users.json")
@@ -70,11 +72,23 @@ class BallButton
     # https://balbuton.com/api/v1/members_checkin/addcheckin/1592456
     # {"date":"2026-02-22T09:26:30-06:00","users":["176064"]}
 
-    next_check_in = bookings.sort_by {|booking| Time.parse(booking.start_time) }.find do |booking|
-      booking.checkins.nil? || booking.checkins.empty?
+    now = Time.now
+
+    eligible = bookings.select do |booking|
+      next false unless booking.checkins.nil? || booking.checkins.empty?
+
+      minutes_until_start = (Time.parse(booking.start_time) - now) / 60.0
+      minutes_until_start <= CHECKIN_WINDOW_BEFORE_MIN && minutes_until_start >= -CHECKIN_WINDOW_AFTER_MIN
     end
 
-    return if next_check_in.nil?
+    next_check_in = eligible.min_by {|booking| (Time.parse(booking.start_time) - now).abs }
+
+    if next_check_in.nil?
+      puts "checkin: no booking within the checkin window at #{now}"
+      return
+    end
+
+    puts "checkin: checking in booking #{next_check_in.id} (#{next_check_in.start_time}) at #{now}"
 
     BallButton.post(
       "#{CHECK_IN_URL}/#{next_check_in.id}",
