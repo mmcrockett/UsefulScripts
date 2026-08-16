@@ -17,6 +17,7 @@ class BallButton
   CHECK_IN_URL = "#{API_URL}/members_checkin/addcheckin"
   LIST_URL = "#{API_URL}/members/booking"
   RESERVE_URL = "#{API_URL}/appointment/add_book"
+  CANCEL_URL = "#{API_URL}/appointment/cancel"
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
   CHECKIN_WINDOW_BEFORE_MIN = 60
   CHECKIN_WINDOW_AFTER_MIN = 150
@@ -61,6 +62,8 @@ class BallButton
           '%A %B %d %Y %l:%M%p'
         when :time
           '%l:%M%p'
+        when :compact_date
+          '%Y%m%d'
         else
           '%A - %b %d'
         end
@@ -107,12 +110,25 @@ class BallButton
           central_time_human(booking.end_time, format: :time)
       ].join(' - ')
 
+      cancel_cell = if Time.parse(booking.start_time) > Time.now
+        <<~CANCEL_HTML
+          <form method="post" action="cancel.php" class="d-flex gap-1">
+            <input type="hidden" name="apt_id" value="#{booking.id}">
+            <input type="text" name="confirm_date" placeholder="YYYYMMDD" size="8" required>
+            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+          </form>
+        CANCEL_HTML
+      else
+        ''
+      end
+
       <<~HTML
          <tr>
             <td>#{central_time_human(booking.start_time)}</td>
             <td>#{time_display}</td>
             <td>#{booking.court}</td>
             <td>#{symbol}</td>
+            <td>#{cancel_cell}</td>
         </tr>
       HTML
     end
@@ -136,6 +152,7 @@ class BallButton
           <th scope="col">Time</th>
           <th scope="col">Court</th>
           <th scope="col">Checked In?</th>
+          <th scope="col">Cancel</th>
         </tr>
         </thead>
         <tbody>
@@ -203,9 +220,24 @@ class BallButton
     booking = BallButton.get(url, headers: user_token_header).parsed_response['payload']
 
     Struct.new(
-      :checkins
+      :checkins,
+      :start_time
     ).new(
-      booking['checkins']
+      booking['checkins'],
+      booking['start_time']
+    )
+  end
+
+  def cancel(apt_id, confirm_date: nil)
+    if confirm_date
+      actual_date = central_time_human(booking(apt_id).start_time, format: :compact_date)
+      return 'not allowed' unless confirm_date == actual_date
+    end
+
+    BallButton.post(
+      "#{CANCEL_URL}/#{apt_id}",
+      body: {cancel_for: 'court', apt_id: apt_id.to_s}.to_json,
+      headers: user_token_header
     )
   end
 
@@ -274,6 +306,10 @@ if 'generate-schedule' == ARGV[0]
 elsif 'reserve-today' == ARGV[0]
   responses = @bb.reserve_today.map { |r| r.parsed_response }
   puts "responses: #{responses}"
+elsif 'cancel' == ARGV[0]
+  result = @bb.cancel(ARGV[1], confirm_date: ARGV[2])
+  puts "cancel response: #{result.respond_to?(:parsed_response) ? result.parsed_response : result}"
+  puts @bb.generate_schedule
 else
   response = @bb.reserve(
     ENV['RESERVE_START'],
