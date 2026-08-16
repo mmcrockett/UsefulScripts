@@ -112,11 +112,7 @@ class BallButton
 
       cancel_cell = if Time.parse(booking.start_time) > Time.now
         <<~CANCEL_HTML
-          <form method="post" action="cancel.php" class="d-flex gap-1">
-            <input type="hidden" name="apt_id" value="#{booking.id}">
-            <input type="text" name="confirm_date" placeholder="YYYYMMDD" size="8" required>
-            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
-          </form>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-apt-id="#{booking.id}" onclick="openCancelModal(this)">&times;</button>
         CANCEL_HTML
       else
         ''
@@ -162,6 +158,33 @@ class BallButton
       <figcaption class="blockquote-footer pt-3">
         #{central_time_human(Time.now, format: :long)}
       </figcaption>
+
+      <div class="modal fade" id="cancelModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form method="post" action="cancel.php">
+              <div class="modal-header">
+                <h5 class="modal-title">Cancel booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" name="apt_id" id="cancelAptId">
+                <input type="text" name="confirm_date" class="form-control" placeholder="secret 8 digits" required>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-danger">Cancel booking</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <script>
+        function openCancelModal(btn) {
+          document.getElementById('cancelAptId').value = btn.getAttribute('data-apt-id');
+          new bootstrap.Modal(document.getElementById('cancelModal')).show();
+        }
+      </script>
       </body>
       </html>
     HTML
