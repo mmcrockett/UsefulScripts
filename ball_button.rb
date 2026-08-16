@@ -107,6 +107,9 @@ class BallButton
       <html>
       <head>
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+      <link rel="icon" type="image/x-icon" href="/images/paddle.ico">
+      <link rel="icon" type="image/svg+xml" href="/images/paddle.svg">
+      <link rel="apple-touch-icon" href="/images/paddle-180.png">
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
         <meta charset="UTF-8">
         <title>🏓 JCC Pickleball</title>
