@@ -23,6 +23,10 @@ class BallButton
     File.read("#{__dir__}/ball_button.users.json")
   )
 
+  SCHEDULE = JSON.parse(
+    File.read("#{__dir__}/ball_button.schedule.json")
+  )
+
   COURTS = {
     '5' => COURT_5,
     '5C' => COURT_5C,
@@ -188,6 +192,20 @@ class BallButton
     )
   end
 
+  def reserve_today
+    weekday = central_time_at.strftime('%A').downcase
+    entries = SCHEDULE[weekday] || []
+
+    entries.map do |entry|
+      reserve(
+        entry['start'],
+        minutes: entry['duration'],
+        court: entry['court'],
+        dry_run: 'true' == ENV['DRY_RUN']
+      )
+    end
+  end
+
   def reserve(start, minutes: nil, court: nil, dry_run: false)
     minutes ||= 60
     court ||= COURT_5
@@ -236,6 +254,9 @@ end
 
 if 'generate-schedule' == ARGV[0]
   puts @bb.generate_schedule
+elsif 'reserve-today' == ARGV[0]
+  responses = @bb.reserve_today.map { |r| r.parsed_response }
+  puts "responses: #{responses}"
 else
   response = @bb.reserve(
     ENV['RESERVE_START'],
