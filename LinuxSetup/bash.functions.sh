@@ -68,13 +68,28 @@ function brew-update-daily {
   if brew update -q; then
     echo "${TODAY}" > "${STAMP_FILE}"
 
-    local OUTDATED_PACKAGES="$(brew outdated --quiet)"
+    local OUTDATED_FORMULAE="$(brew outdated --formula --quiet)"
 
-    if [ -n "${OUTDATED_PACKAGES}" ]; then
-      echo "Upgrading Homebrew packages: ${OUTDATED_PACKAGES}"
-      HOMEBREW_NO_ASK=1 brew upgrade -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
+    if [ -n "${OUTDATED_FORMULAE}" ]; then
+      echo "Upgrading Homebrew formulae: ${OUTDATED_FORMULAE}"
+      HOMEBREW_NO_ASK=1 brew upgrade --formula -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
     else
-      echo "All Homebrew packages are up to date."
+      echo "All Homebrew formulae are up to date."
+    fi
+
+    local CASK_STAMP_FILE="${TMPDIR:-/tmp}/brew-cask-upgrade.last"
+
+    if [ ! -f "${CASK_STAMP_FILE}" ] || [ -n "$(find "${CASK_STAMP_FILE}" -mtime +7 2>/dev/null)" ]; then
+      touch "${CASK_STAMP_FILE}"
+
+      local OUTDATED_CASKS="$(brew outdated --cask --quiet)"
+
+      if [ -n "${OUTDATED_CASKS}" ]; then
+        echo "Upgrading Homebrew casks: ${OUTDATED_CASKS}"
+        HOMEBREW_NO_ASK=1 brew upgrade --cask -q > "/tmp/brew-cask-upgrade-${TODAY}.log" 2>&1 &
+      else
+        echo "All Homebrew casks are up to date."
+      fi
     fi
   fi
 }
