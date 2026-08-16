@@ -112,7 +112,7 @@ class BallButton
 
       cancel_cell = if Time.parse(booking.start_time) > Time.now
         <<~CANCEL_HTML
-          <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width:1.75rem;height:1.75rem;line-height:1;" data-apt-id="#{booking.id}" onclick="openCancelModal(this)"><span style="position:relative;top:1px;">&times;</span></button>
+          <span role="button" data-apt-id="#{booking.id}" onclick="openCancelModal(this)">❌</span>
         CANCEL_HTML
       else
         ''
