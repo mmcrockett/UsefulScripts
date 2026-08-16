@@ -256,8 +256,8 @@ class BallButton
   end
 
   def reserve(start, minutes: nil, court: nil, dry_run: false)
-    minutes ||= 60
-    court ||= COURT_5
+    minutes ||= 90
+    court ||= 'ANY'
     court = COURTS[court.to_s.upcase] || court
     court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ALL'
     attempts = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
