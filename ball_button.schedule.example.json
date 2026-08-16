@@ -1,0 +1,6 @@
+{
+  "saturday": [
+    { "name": "defaults", "court": "any", "duration": 90, "start": "10:00" },
+    { "name": "late start", "court": "5C", "duration": 60, "start": "14:00" }
+  ]
+}
