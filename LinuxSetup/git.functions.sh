@@ -127,10 +127,18 @@ function git-rm-merged-local-branches {
 function git-cleanup-pr-merged {
   git-handle-pr-merged && git-rm-merged-local-branches
 }
+function git-is-fork {
+  local ORIGIN_URL="$(git config --get remote.origin.url | sed 's/\.git$//')"
+  local UPSTREAM_URL="$(git config --get remote.upstream.url | sed 's/\.git$//')"
+
+  if [ -n "${UPSTREAM_URL}" ] && [ "${UPSTREAM_URL}" != "${ORIGIN_URL}" ]; then
+    echo "yes"
+  fi
+}
 function git-handle-pr-merged {
   local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="$(git-default-branch-name)"
-  local IS_FORK="$(git config --get remote.origin.url | grep "mcrockett")"
+  local IS_FORK="$(git-is-fork)"
 
   if [ -n "${1}" ]; then
     BRANCH="${1}"
