@@ -224,8 +224,8 @@ function git-current-branch {
 function git-is-current-branch {
   local BRANCH="${1}"
 
-  if [ -n "${BRANCH}" ]; then
-    echo "$(git branch | grep "^\*" | grep -w "${BRANCH}")"
+  if [ -n "${BRANCH}" ] && [ "$(git-current-branch)" = "${BRANCH}" ]; then
+    echo "${BRANCH}"
   else
     echo ""
   fi
