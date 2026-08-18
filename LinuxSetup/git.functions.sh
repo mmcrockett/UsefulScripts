@@ -252,7 +252,7 @@ function git-push-open-pr {
       | head -n 1
     )"
 
-    if [ -n "${PR_URL}" ]; then
+    if [ -n "${PR_URL}" ] && [ -z "${CLAUDECODE}" ]; then
       echo "Opening PR URL: ${PR_URL}"
       open "${PR_URL}"
     fi
@@ -314,6 +314,10 @@ function git {
     push)
       git-ssh-add
       git-push-open-pr "$@"
+      ;;
+    pull)
+      git-ssh-add
+      __scmb_git "$@"
       ;;
     *)
       __scmb_git "$@"
