@@ -622,7 +622,7 @@ function mikeplayer() {
   (
     trap "printf '\033]111\007'" EXIT
     printf '\033]11;rgb:80/00/80\007'
-    cd ~/UsefulScripts.mmcrockett && ruby MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
+    MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
   )
 }
 function processPhotos() {
