@@ -194,7 +194,7 @@ function git-force-push-branch {
   local DEFAULT_BRANCH="$(git-default-branch-name)"
 
   if [ -z "$(git-is-current-branch ${DEFAULT_BRANCH})" ]; then
-    logCmnd git push -f origin "$(git-current-branch)"
+    logCmnd git push --force-with-lease origin "$(git-current-branch)"
   else
     abort "No force push ${DEFAULT_BRANCH}!"
   fi
