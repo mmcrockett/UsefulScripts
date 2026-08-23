@@ -619,11 +619,11 @@ function isMac {
 function mikeplayer() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-music/"
   local _VOLUME=0.5
-  (
-    trap "printf '\033]111\007'" EXIT
-    printf '\033]11;rgb:80/00/80\007'
-    cd ~/UsefulScripts.mmcrockett && ruby MikePlayer.rb --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
-  )
+  #(
+    #trap "printf '\033]111\007'" EXIT
+    #printf '\033]11;rgb:80/00/80\007'
+    MikePlayer.rb --fullscreen --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
+  #)
 }
 function processPhotos() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-pictures/"
@@ -838,7 +838,7 @@ function screenshotRenamer {
 
       osascript -e "set the clipboard to (POSIX file \"${dir}/${new_name}\")"
 
-      find "${dir}" -maxdepth 1 -type f -name 'ss-*' -mmin +30 -delete
+      command find "${dir}" -maxdepth 1 -type f -name 'ss-*' -mmin +240 -delete
     fi
   done
 }

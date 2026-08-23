@@ -139,7 +139,6 @@ scmb_wrapped_shell_commands=(
   find
   ls
   mv
-  rg
   rm
   scp
   vim
@@ -219,4 +218,7 @@ function gd {
   else
     exec_scmb_expand_args --relative "$_git_cmd" diff "$@"
   fi
+}
+function gwtaf {
+  git_worktree_directory=feature gwta "$@"
 }
