@@ -21,6 +21,5 @@ fi
 alias bluebg="echo -ne '\e]11;#111140\e\\'"
 alias greybg="echo -ne '\e]11;#333340\e\\'"
 alias purplebg="echo -ne '\e]11;#2D004D\e\\'"
-alias ssh-dh-compute-11="ssh -i ${HOME}/.ssh/dreamcomputeserverpw debian@208.113.128.139"
-alias ssh-dh-compute-12="ssh -i ${HOME}/.ssh/dreamcompute-debian-12-pw debian@208.113.135.206"
+alias ssh-gcp-rails-instance="ssh -i ${HOME}/.ssh/gcp-rails-instance google@34.71.24.199"
 alias firefox-prune-180-days="firefox-prune-storage --days 180 --delete"
