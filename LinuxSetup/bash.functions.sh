@@ -18,13 +18,15 @@ function logCmndQuiet {
   _CMD_STR="$(printf ' %q' "${@}")"
 
   printf 1>&2 "%s:%s ... " "$(identifier)" "${_CMD_STR}"
-  "${@}" > /dev/null 2>&1
+  local _ERR
+  _ERR="$("${@}" 2>&1 > /dev/null)"
   local _STATUS=$?
 
   if [ ${_STATUS} -eq 0 ]; then
     echo 1>&2 "✔"
   else
     echo 1>&2 "✖"
+    [ -n "${_ERR}" ] && echo 1>&2 "${_ERR}"
   fi
 
   return ${_STATUS}

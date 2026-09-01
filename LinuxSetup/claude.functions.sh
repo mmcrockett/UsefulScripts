@@ -61,37 +61,57 @@ function prune-claude {
   fi
 }
 
-# Curated dark backgrounds, one per hue region, all readable as a terminal background.
-claude_bg_shades=(
-  "#14203F"
-  "#06302E"
-  "#0F2A12"
-  "#2A2205"
-  "#2E1405"
-  "#320A16"
-  "#2C0A2C"
-  "#3B0A55"
-  "#1C0F52"
-  "#2B2E35"
+claude_themes=(
+  "#3B0A55 #E8E8E8 violet"          # dark
+  "#0A2C4E #E8E8E8 blue"            # dark
+  "#0F3311 #E8E8E8 green"           # dark
+  "#3A3405 #E8E8E8 olive"           # dark
+  "#3E1E04 #E8E8E8 amber"           # dark
+  "#320A2C #E8E8E8 magenta"         # dark
+  "#123A3A #E8E8E8 cyan"            # dark
+  "#F4ECD8 #2A2620 paper"           # light
+  "#D8E4F0 #1A2633 cool-paper"      # light
+  "#F0E0DA #33221E blush-paper"     # light
+  "#E8E0F0 #261A33 lavender-paper"  # light
+  "#5A2A6E #F0F0F0 light-violet"    # dark
+  "#1F5A4E #F0F0F0 light-teal"      # dark
+  "#6E5410 #F5F0E0 light-amber"     # dark
+  "#6E2020 #F5E8E8 light-red"       # dark
+  "#2E5A8C #EAF2FA light-blue"      # dark
+  "#5A6E20 #F2F5E0 light-olive"     # dark
+  "#7A3A5A #FAEAF0 light-mauve"     # dark
+  "- - dark"                       # built-in preset, no OSC recolor
 )
 
-# Emit an OSC 11 background color chosen from claude_bg_shades by hashing a path.
 function claude-bg {
   local dir="${1:-$PWD}"
-  local idx=$(( $(cksum <<< "$dir" | cut -d ' ' -f 1) % ${#claude_bg_shades[@]} ))
-  printf '\e]11;%s\e\\' "${claude_bg_shades[$idx]}"
+  local idx=$(( $(cksum <<< "$dir" | cut -d ' ' -f 1) % ${#claude_themes[@]} ))
+  local bg fg slug
+  read -r bg fg slug <<< "${claude_themes[$idx]}"
+
+  if [[ "$slug" == "dark" ]]; then
+    printf '\e]110\a\e]111\a'
+    CLAUDE_THEME_VALUE="dark"
+  else
+    printf '\e]11;%s\e\\' "$bg"
+    printf '\e]10;%s\e\\' "$fg"
+    CLAUDE_THEME_VALUE="custom:${slug}"
+  fi
 }
 
 function claude {
-  trap 'printf "\e]111\a"' RETURN
-  claude-bg
+  trap 'printf "\e]110\a\e]111\a"' RETURN
 
   local last_dir="${PWD##*/}"
 
-  if [[ $# -gt 0 && "$1" != -* ]]; then
-    command claude --name "${last_dir} $*" "$*"
+  if [[ $# -eq 0 ]]; then
+    claude-bg
+    command claude --settings "{\"theme\":\"${CLAUDE_THEME_VALUE}\"}" --name "${last_dir}"
+  elif [[ "$1" == -* ]]; then
+    command claude "$@"
   else
-    command claude --name "${last_dir}" "$@"
+    claude-bg
+    command claude --settings "{\"theme\":\"${CLAUDE_THEME_VALUE}\"}" --name "${last_dir} $*" "$*"
   fi
 }
 

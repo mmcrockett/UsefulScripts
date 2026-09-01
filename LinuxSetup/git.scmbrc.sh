@@ -137,6 +137,7 @@ scmb_wrapped_shell_commands=(
   cd
   cp
   find
+  gvim
   ls
   mv
   rm
