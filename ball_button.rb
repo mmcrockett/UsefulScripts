@@ -21,6 +21,8 @@ class BallButton
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
   CHECKIN_WINDOW_BEFORE_MIN = 60
   CHECKIN_WINDOW_AFTER_MIN = 150
+  REQUEST_MAX_ATTEMPTS = 3
+  REQUEST_BACKOFF_BASE_SEC = 2
 
   USERS = JSON.parse(
     File.read("#{__dir__}/ball_button.users.json")
@@ -93,7 +95,7 @@ class BallButton
 
     puts "checkin: checking in booking #{next_check_in.id} (#{next_check_in.start_time}) at #{now}"
 
-    BallButton.post(
+    request(:post,
       "#{CHECK_IN_URL}/#{next_check_in.id}",
       body: {date: central_time_at, users: [user_id]}.to_json,
       headers: user_token_header
@@ -214,7 +216,7 @@ class BallButton
       is_coach: false
     }
 
-    @bookings ||= BallButton.post(
+    @bookings ||= request(:post,
       url,
       body: data.to_json,
       headers: user_token_header
@@ -240,7 +242,7 @@ class BallButton
   def booking(booking_id)
     url = "#{BOOKING_URL}/#{booking_id}"
 
-    booking = BallButton.get(url, headers: user_token_header).parsed_response['payload']
+    booking = request(:get, url, headers: user_token_header).parsed_response['payload']
 
     Struct.new(
       :checkins,
@@ -319,6 +321,28 @@ class BallButton
     end
 
     @response
+  end
+
+  private
+
+  # Retries idempotent GET/POST calls when the API returns a transient
+  # failure (e.g. a 504 gateway timeout, which comes back as an HTML body
+  # instead of JSON) so callers always get a parsed Hash back.
+  def request(method, url, **options)
+    attempt = 1
+
+    loop do
+      response = BallButton.send(method, url, **options)
+      return response if response.ok? && response.parsed_response.is_a?(Hash)
+
+      if attempt >= REQUEST_MAX_ATTEMPTS
+        raise "request failed after #{attempt} attempts: #{method.upcase} #{url} " \
+              "(status #{response.code}): #{response.parsed_response.inspect}"
+      end
+
+      sleep(REQUEST_BACKOFF_BASE_SEC**attempt)
+      attempt += 1
+    end
   end
 end
 
