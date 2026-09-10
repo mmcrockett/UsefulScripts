@@ -964,71 +964,9 @@ function firefox-prune-storage {
     echo "$count stale non-extension origins (>${days} days). Re-run with --delete to move them to /tmp."
   fi
 }
-# Tint a worktree's VSCode window so multiple worktrees are visually distinct.
-# Color is stable per branch name (same branch -> same color every time).
-vscode_worktree_tint() {
-  local wt_path="${1:-$PWD}"
-  local branch="$2"
-  [ -d "$wt_path" ] || { echo "vscode_worktree_tint: no such dir: $wt_path" >&2; return 1; }
-
-  # Curated palette: dark backgrounds that read well with light foreground.
-  local palette=(
-    "#5c2e2e" "#5c4a2e" "#2e5c2e" "#2e5c5c"
-    "#2e3e5c" "#3e2e5c" "#5c2e5c" "#5c2e44"
-    "#44475a" "#3a5c2e" "#5c3a2e" "#2e5c4a"
-  )
-
-  # Stable hash of the branch name -> palette index.
-  local hash idx bg
-  hash=$(cksum <<<"$branch" | cut -d' ' -f1)
-  idx=$(( hash % ${#palette[@]} ))
-  bg="${palette[$idx]}"
-  # NOTE: zsh arrays are 1-indexed; bash is 0-indexed. The line above is for
-  # bash (your shell). For zsh use: bg="${palette[$((idx + 1))]}"
-
-  local fg="#ffffff"
-  local vscode_dir="$wt_path/.vscode"
-  local settings="$vscode_dir/settings.json"
-  mkdir -p "$vscode_dir"
-
-  # The block we want to ensure is present.
-  local colors
-  colors=$(cat <<EOF
-{
-  "titleBar.activeBackground": "$bg",
-  "titleBar.activeForeground": "$fg",
-  "titleBar.inactiveBackground": "$bg",
-  "titleBar.inactiveForeground": "$fg",
-  "activityBar.background": "$bg",
-  "activityBar.foreground": "$fg",
-  "statusBar.background": "$bg",
-  "statusBar.foreground": "$fg"
-}
-EOF
-)
-
-  if [ -s "$settings" ] && command -v jq >/dev/null 2>&1; then
-    # Merge into existing settings without clobbering other keys.
-    local tmp
-    tmp=$(mktemp)
-    if jq --argjson c "$colors" '. + {"workbench.colorCustomizations": $c}' \
-         "$settings" >"$tmp" 2>/dev/null; then
-      mv "$tmp" "$settings"
-    else
-      rm -f "$tmp"
-      echo "__worktree_tint: $settings isn't valid JSON, leaving it alone" >&2
-      return 1
-    fi
-  else
-    # No existing settings (or no jq) -> write a fresh file.
-    cat >"$settings" <<EOF
-{
-  "workbench.colorCustomizations": $colors
-}
-EOF
-  fi
-
-  echo "Tinted $wt_path -> $bg (branch: $branch)"
+function hey-triage {
+  hey --version >/dev/null 2>&1 || brew install --cask basecamp/tap/hey || return $?
+  (cd ~/mmcrockett/hey-triage && claude --permission-mode auto "Can we triage imbox?")
 }
 function pbcopy {
   if [ $# -eq 0 ]; then

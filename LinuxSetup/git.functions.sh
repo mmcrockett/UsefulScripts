@@ -5,7 +5,7 @@ function gwta {
     BRANCH="${USER}/${BRANCH}"
   fi
 
-  gwtadd "${BRANCH}" && git checkout "${BRANCH}" && vscode_worktree_tint "$PWD" "${BRANCH}"
+  git worktree add "${BRANCH}" && git checkout "${BRANCH}"
 }
 function ghcli {
   git-gh-preflight || return $?
