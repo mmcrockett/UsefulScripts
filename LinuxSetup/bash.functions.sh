@@ -54,7 +54,7 @@ function weeklyUpdate {
     fi
   fi
 }
-function brew-update-daily {
+function brew-upgrade-mcrockett {
   command -v brew >/dev/null 2>&1 || return 0
 
   local TODAY
@@ -62,37 +62,60 @@ function brew-update-daily {
 
   local STAMP_FILE="${TMPDIR:-/tmp}/brew-update.last"
 
-  if [ -f "${STAMP_FILE}" ] && [ "$(cat "${STAMP_FILE}")" = "${TODAY}" ]; then
+  if [ ! -f "${STAMP_FILE}" ] || [ "$(cat "${STAMP_FILE}")" != "${TODAY}" ]; then
+    echo "Running daily Homebrew update..."
+    if brew update -q; then
+      echo "${TODAY}" > "${STAMP_FILE}"
+      brew-upgrade-formulae
+    fi
+  fi
+
+  local CASK_STAMP_FILE="${TMPDIR:-/tmp}/brew-cask-upgrade.last"
+
+  if [ ! -f "${CASK_STAMP_FILE}" ] || [ -n "$(find "${CASK_STAMP_FILE}" -mtime +7 2>/dev/null)" ]; then
+    touch "${CASK_STAMP_FILE}"
+    brew-upgrade-casks
+  fi
+}
+function brew-upgrade-formulae {
+  local TODAY
+  TODAY="$(date +%F)"
+
+  local OUTDATED_FORMULAE="$(brew outdated --formula --quiet)"
+
+  if [ -n "${OUTDATED_FORMULAE}" ]; then
+    echo "Upgrading Homebrew formulae: ${OUTDATED_FORMULAE}"
+    HOMEBREW_NO_ASK=1 brew upgrade --formula -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
+  else
+    echo "All Homebrew formulae are up to date."
+  fi
+}
+function brew-upgrade-casks {
+  local TODAY
+  TODAY="$(date +%F)"
+
+  local OUTDATED_CASKS="$(brew outdated --cask --quiet)"
+
+  if [ -z "${OUTDATED_CASKS}" ]; then
+    echo "All Homebrew casks are up to date."
     return 0
   fi
 
-  echo "Running daily Homebrew update..."
-  if brew update -q; then
-    echo "${TODAY}" > "${STAMP_FILE}"
+  local CASK
+  local BG_CASKS=()
 
-    local OUTDATED_FORMULAE="$(brew outdated --formula --quiet)"
-
-    if [ -n "${OUTDATED_FORMULAE}" ]; then
-      echo "Upgrading Homebrew formulae: ${OUTDATED_FORMULAE}"
-      HOMEBREW_NO_ASK=1 brew upgrade --formula -q > "/tmp/brew-upgrade-${TODAY}.log" 2>&1 &
+  for CASK in ${OUTDATED_CASKS}; do
+    if [ "${CASK}" = "aptible" ]; then
+      echo "Upgrading Homebrew cask aptible (needs sudo, running in foreground)..."
+      HOMEBREW_NO_ASK=1 brew upgrade --cask aptible
     else
-      echo "All Homebrew formulae are up to date."
+      BG_CASKS+=("${CASK}")
     fi
+  done
 
-    local CASK_STAMP_FILE="${TMPDIR:-/tmp}/brew-cask-upgrade.last"
-
-    if [ ! -f "${CASK_STAMP_FILE}" ] || [ -n "$(find "${CASK_STAMP_FILE}" -mtime +7 2>/dev/null)" ]; then
-      touch "${CASK_STAMP_FILE}"
-
-      local OUTDATED_CASKS="$(brew outdated --cask --quiet)"
-
-      if [ -n "${OUTDATED_CASKS}" ]; then
-        echo "Upgrading Homebrew casks: ${OUTDATED_CASKS}"
-        HOMEBREW_NO_ASK=1 brew upgrade --cask -q > "/tmp/brew-cask-upgrade-${TODAY}.log" 2>&1 &
-      else
-        echo "All Homebrew casks are up to date."
-      fi
-    fi
+  if [ "${#BG_CASKS[@]}" -gt 0 ]; then
+    echo "Upgrading Homebrew casks: ${BG_CASKS[*]}"
+    HOMEBREW_NO_ASK=1 brew upgrade --cask "${BG_CASKS[@]}" -q > "/tmp/brew-cask-upgrade-${TODAY}.log" 2>&1 &
   fi
 }
 function updateScripts {
