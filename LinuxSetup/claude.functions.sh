@@ -100,6 +100,8 @@ function claude-bg {
 }
 
 function claude {
+  git-ssh-add
+  ghcli &>/dev/null
   trap 'printf "\e]110\a\e]111\a"' RETURN
 
   local last_dir="${PWD##*/}"

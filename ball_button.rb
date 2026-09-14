@@ -14,7 +14,8 @@ class BallButton
   API_URL  = '/api/v1'
   BASE_URL = 'https://balbuton.com'
   BOOKING_URL = "#{API_URL}/appointment/get"
-  CHECK_IN_URL = "#{API_URL}/members_checkin/addcheckin"
+  CHECKIN_MEMBER_URL = "#{API_URL}/members_checkin/addcheckin"
+  CHECKIN_LOCATION_URL = "#{API_URL}/checkin"
   LIST_URL = "#{API_URL}/members/booking"
   RESERVE_URL = "#{API_URL}/appointment/add_book"
   CANCEL_URL = "#{API_URL}/appointment/cancel"
@@ -95,8 +96,20 @@ class BallButton
 
     puts "checkin: checking in booking #{next_check_in.id} (#{next_check_in.start_time}) at #{now}"
 
+    checkin_location
+  end
+
+  def checkin_location(location_id: '134')
     request(:post,
-      "#{CHECK_IN_URL}/#{next_check_in.id}",
+      CHECKIN_LOCATION_URL,
+      body: {location_id: location_id}.to_json,
+      headers: user_token_header
+    )
+  end
+
+  def checkin_member(booking_id)
+    request(:post,
+      "#{CHECKIN_MEMBER_URL}/#{booking_id}",
       body: {date: central_time_at, users: [user_id]}.to_json,
       headers: user_token_header
     )

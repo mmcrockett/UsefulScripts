@@ -25,3 +25,5 @@
   insteadOf = https://github.com/mmcrockett/
 [url "git@github.com:WeInfuse/"]
   insteadOf = https://github.com/WeInfuse/
+[fetch]
+  prune = true

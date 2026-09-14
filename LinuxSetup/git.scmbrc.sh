@@ -115,7 +115,7 @@ git_worktree_alias="gwt"
 git_worktree_add_alias="gwtadd"
 git_worktree_remove_alias="gwtr"
 
-git_worktree_directory="sibling"
+export git_worktree_directory="sibling"
 
 # Git Keyboard Shortcuts
 # ----------------------------------------------

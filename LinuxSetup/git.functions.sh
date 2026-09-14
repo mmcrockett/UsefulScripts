@@ -5,7 +5,7 @@ function gwta {
     BRANCH="${USER}/${BRANCH}"
   fi
 
-  gwtadd "${BRANCH}" && git checkout "${BRANCH}" && vscode_worktree_tint "$PWD" "${BRANCH}"
+  git worktree add "${BRANCH}" && git checkout "${BRANCH}"
 }
 function ghcli {
   git-gh-preflight || return $?
@@ -262,16 +262,22 @@ function git-push-open-pr {
   return ${PUSH_STATUS}
 }
 function git-ssh-add {
+  local KEY=~/.ssh/githubpw
+  if [ -f ~/.ssh/github.weinfuse ]; then
+    KEY=~/.ssh/github.weinfuse
+  fi
+  local KEY_FINGERPRINT="$(ssh-keygen -lf "${KEY}" 2>/dev/null | awk '{print $2}')"
   local SSH_STATUS="$(ssh-add -l 2>&1)"
 
   if [[ "${SSH_STATUS}" == *"Could not open a connection to your authentication agent"* ]]; then
     echo "Starting ssh-agent..."
     eval "$(ssh-agent -s)"
+    SSH_STATUS="$(ssh-add -l 2>&1)"
   fi
 
-  if [[ "${SSH_STATUS}" != *"github@mmcrockett.com"* ]]; then
+  if [[ -z "${KEY_FINGERPRINT}" || "${SSH_STATUS}" != *"${KEY_FINGERPRINT}"* ]]; then
     echo "Adding day to ssh key for github..."
-    ssh-add -t 14h ~/.ssh/githubpw
+    ssh-add -t 14h "${KEY}"
   fi
 }
 function git-is-worktree {
