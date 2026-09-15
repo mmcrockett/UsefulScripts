@@ -154,13 +154,12 @@ class BallButton
       HTML
     end
 
-    error_rows = recent_errors.map do |error|
+    error_sections = recent_errors.map do |error|
       <<~HTML
-        <tr>
-          <td>#{central_time_human(error['time'], format: :long)}</td>
-          <td>#{error['context']}</td>
-          <td>#{error['message']}</td>
-        </tr>
+        <details class="mb-2">
+          <summary class="h6">#{central_time_human(error['time'], format: :long)} - #{error['context']}</summary>
+          <p class="small" style="white-space: pre-wrap; word-break: break-word;">#{error['message']}</p>
+        </details>
       HTML
     end
 
@@ -194,27 +193,12 @@ class BallButton
         #{central_time_human(Time.now, format: :long)}
       </figcaption>
 
-      <details class="pt-4">
-        <summary>Errors (last #{ERROR_DISPLAY_DAYS} days)</summary>
-        #{if error_rows.empty?
-            '<p class="text-muted small">No errors.</p>'
-          else
-            <<~ERRORS_HTML
-              <table class="table table-striped table-sm small" style="word-break: break-word;">
-              <thead>
-                <tr>
-                  <th scope="col">When</th>
-                  <th scope="col">Context</th>
-                  <th scope="col">Message</th>
-                </tr>
-              </thead>
-              <tbody>
-              #{error_rows.join("\n")}
-              </tbody>
-              </table>
-            ERRORS_HTML
-          end}
-      </details>
+      <h5 class="pt-4">Errors (last #{ERROR_DISPLAY_DAYS} days)</h5>
+      #{if error_sections.empty?
+          '<p class="text-muted small">No errors.</p>'
+        else
+          error_sections.join("\n")
+        end}
 
       <div class="modal fade" id="cancelModal" tabindex="-1">
         <div class="modal-dialog">
