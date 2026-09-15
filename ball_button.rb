@@ -13,6 +13,7 @@ class BallButton
   COURT_6B = 1181
   API_URL  = '/api/v1'
   BASE_URL = 'https://balbuton.com'
+  LOGIN_URL = "#{API_URL}/auth/login"
   BOOKING_URL = "#{API_URL}/appointment/get"
   CHECKIN_MEMBER_URL = "#{API_URL}/members_checkin/addcheckin"
   CHECKIN_LOCATION_URL = "#{API_URL}/checkin"
@@ -24,6 +25,9 @@ class BallButton
   CHECKIN_WINDOW_AFTER_MIN = 150
   REQUEST_MAX_ATTEMPTS = 3
   REQUEST_BACKOFF_BASE_SEC = 2
+  ERROR_LOG_PATH = "#{__dir__}/ball_button.errors.log"
+  ERROR_LOG_RETENTION_DAYS = 30
+  ERROR_DISPLAY_DAYS = 7
 
   USERS = JSON.parse(
     File.read("#{__dir__}/ball_button.users.json")
@@ -96,7 +100,9 @@ class BallButton
 
     puts "checkin: checking in booking #{next_check_in.id} (#{next_check_in.start_time}) at #{now}"
 
-    checkin_location
+    location_response = checkin_location
+    checkin_member(next_check_in.id) if location_response.ok?
+    location_response
   end
 
   def checkin_location(location_id: '134')
@@ -116,7 +122,11 @@ class BallButton
   end
 
   def generate_schedule
-    check_in_next
+    begin
+      check_in_next
+    rescue => e
+      log_error('check_in_next', e)
+    end
 
     html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
       symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
@@ -140,6 +150,16 @@ class BallButton
             <td>#{booking.court}</td>
             <td>#{symbol}</td>
             <td>#{cancel_cell}</td>
+        </tr>
+      HTML
+    end
+
+    error_rows = recent_errors.map do |error|
+      <<~HTML
+        <tr>
+          <td>#{central_time_human(error['time'], format: :long)}</td>
+          <td>#{error['context']}</td>
+          <td>#{error['message']}</td>
         </tr>
       HTML
     end
@@ -173,6 +193,26 @@ class BallButton
       <figcaption class="blockquote-footer pt-3">
         #{central_time_human(Time.now, format: :long)}
       </figcaption>
+
+      <h5 class="pt-4">Errors (last #{ERROR_DISPLAY_DAYS} days)</h5>
+      #{if error_rows.empty?
+          '<p class="text-muted">No errors.</p>'
+        else
+          <<~ERRORS_HTML
+            <table class="table table-striped table-sm">
+            <thead>
+              <tr>
+                <th scope="col">When</th>
+                <th scope="col">Context</th>
+                <th scope="col">Message</th>
+              </tr>
+            </thead>
+            <tbody>
+            #{error_rows.join("\n")}
+            </tbody>
+            </table>
+          ERRORS_HTML
+        end}
 
       <div class="modal fade" id="cancelModal" tabindex="-1">
         <div class="modal-dialog">
@@ -208,15 +248,74 @@ class BallButton
   end
 
   def user_id
-    USERS[@user].first.to_s
+    USERS[@user]['id'].to_s
   end
 
   def user_token
-    USERS[@user].last
+    USERS[@user]['token']
   end
 
   def user_token_header
     { 'x-access-token': user_token }
+  end
+
+  # Exchanges the stored username/password for a fresh JWT. The response
+  # also carries the account's password hash, FCM push token, email, and
+  # home coordinates, so only the token is ever pulled out of it.
+  def login
+    response = BallButton.post(
+      LOGIN_URL,
+      body: {
+        username: USERS[@user]['username'],
+        password: USERS[@user]['password'],
+        front: true
+      }.to_json
+    )
+
+    raise "login failed (status #{response.code})" unless response.ok?
+
+    response.parsed_response.dig('payload', 'token') ||
+      raise('login response missing payload.token')
+  end
+
+  def refresh_token!
+    persist_token(login)
+  end
+
+  # Re-reads the file before writing so a concurrent cron run's refresh
+  # isn't clobbered, and writes via rename so a run that crashes mid-write
+  # can't leave the file truncated.
+  def persist_token(token)
+    path = "#{__dir__}/ball_button.users.json"
+    current = JSON.parse(File.read(path))
+    current[@user]['token'] = token
+
+    tmp_path = "#{path}.tmp.#{Process.pid}"
+    File.write(tmp_path, JSON.pretty_generate(current))
+    File.rename(tmp_path, path)
+
+    USERS[@user]['token'] = token
+  end
+
+  # Appends to a newline-delimited JSON log and prunes anything older than
+  # ERROR_LOG_RETENTION_DAYS so it doesn't grow unbounded across cron runs.
+  def log_error(context, error)
+    entries = read_error_log
+    entries << {'time' => Time.now.iso8601, 'context' => context, 'message' => error.message}
+
+    cutoff = Time.now - (ERROR_LOG_RETENTION_DAYS * 24 * 60 * 60)
+    entries = entries.select {|e| Time.iso8601(e['time']) >= cutoff }
+
+    File.write(ERROR_LOG_PATH, entries.map(&:to_json).join("\n") + "\n")
+  end
+
+  def recent_errors(days: ERROR_DISPLAY_DAYS)
+    cutoff = Time.now - (days * 24 * 60 * 60)
+
+    read_error_log
+      .select {|e| Time.iso8601(e['time']) >= cutoff }
+      .sort_by {|e| e['time'] }
+      .reverse
   end
 
   def bookings
@@ -340,13 +439,24 @@ class BallButton
 
   # Retries idempotent GET/POST calls when the API returns a transient
   # failure (e.g. a 504 gateway timeout, which comes back as an HTML body
-  # instead of JSON) so callers always get a parsed Hash back.
+  # instead of JSON) so callers always get a parsed Hash back. Also
+  # refreshes the token once on a 401 and retries with it - logins appear
+  # to invalidate sibling sessions, so this only fires when the stored
+  # token has actually gone stale, not on every run.
   def request(method, url, **options)
     attempt = 1
+    token_refreshed = false
 
     loop do
       response = BallButton.send(method, url, **options)
       return response if response.ok? && response.parsed_response.is_a?(Hash)
+
+      if !token_refreshed && response.code == 401 && options[:headers]
+        token_refreshed = true
+        refresh_token!
+        options = options.merge(headers: user_token_header)
+        next
+      end
 
       if attempt >= REQUEST_MAX_ATTEMPTS
         raise "request failed after #{attempt} attempts: #{method.upcase} #{url} " \
@@ -356,6 +466,12 @@ class BallButton
       sleep(REQUEST_BACKOFF_BASE_SEC**attempt)
       attempt += 1
     end
+  end
+
+  def read_error_log
+    return [] unless File.exist?(ERROR_LOG_PATH)
+
+    File.readlines(ERROR_LOG_PATH).reject(&:empty?).map {|line| JSON.parse(line) }
   end
 end
 
@@ -370,6 +486,9 @@ elsif 'cancel' == ARGV[0]
   result = @bb.cancel(ARGV[1], confirm_date: ARGV[2])
   puts "cancel response: #{result.respond_to?(:parsed_response) ? result.parsed_response : result}"
   puts @bb.generate_schedule
+elsif 'login' == ARGV[0]
+  @bb.refresh_token!
+  puts 'login: token refreshed and saved'
 else
   response = @bb.reserve(
     ENV['RESERVE_START'],
