@@ -194,25 +194,27 @@ class BallButton
         #{central_time_human(Time.now, format: :long)}
       </figcaption>
 
-      <h5 class="pt-4">Errors (last #{ERROR_DISPLAY_DAYS} days)</h5>
-      #{if error_rows.empty?
-          '<p class="text-muted">No errors.</p>'
-        else
-          <<~ERRORS_HTML
-            <table class="table table-striped table-sm">
-            <thead>
-              <tr>
-                <th scope="col">When</th>
-                <th scope="col">Context</th>
-                <th scope="col">Message</th>
-              </tr>
-            </thead>
-            <tbody>
-            #{error_rows.join("\n")}
-            </tbody>
-            </table>
-          ERRORS_HTML
-        end}
+      <details class="pt-4">
+        <summary>Errors (last #{ERROR_DISPLAY_DAYS} days)</summary>
+        #{if error_rows.empty?
+            '<p class="text-muted small">No errors.</p>'
+          else
+            <<~ERRORS_HTML
+              <table class="table table-striped table-sm small" style="word-break: break-word;">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Context</th>
+                  <th scope="col">Message</th>
+                </tr>
+              </thead>
+              <tbody>
+              #{error_rows.join("\n")}
+              </tbody>
+              </table>
+            ERRORS_HTML
+          end}
+      </details>
 
       <div class="modal fade" id="cancelModal" tabindex="-1">
         <div class="modal-dialog">
