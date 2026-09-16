@@ -844,7 +844,7 @@ function screenshotRenamer {
   fswatch ${FOLDER} | while read file; do
     file_name="$(basename "$file")"
 
-    if [[ "$file_name" == ss\ 20* ]]; then
+    if [[ "$file_name" == ss\ 20* && -f "$file" ]]; then
       ext="${file_name##*.}"
       dir="$(dirname "$file")"
       no_ext="${file_name%%.${ext}}"
@@ -861,7 +861,9 @@ function screenshotRenamer {
       rm -f "${dir}"/ss-latest.*
       ln -sf "${new_name}" "${dir}/ss-latest.${ext}"
 
-      osascript -e "set the clipboard to (POSIX file \"${dir}/${new_name}\")"
+      if ! osascript -e "set the clipboard to (read (POSIX file \"${dir}/${new_name}\") as «class PNGf»)"; then
+        echo "screenshotRenamer: failed to set clipboard for ${new_name}" >&2
+      fi
 
       command find "${dir}" -maxdepth 1 -type f -name 'ss-*' -mmin +240 -delete
     fi
