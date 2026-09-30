@@ -270,7 +270,9 @@ function git {
         local NEXT_BRANCH="$(git-branch-history last "${START_BRANCH}")"
         if [ -n "${NEXT_BRANCH}" ]; then
           if [ "${NEXT_BRANCH}" != "${START_BRANCH}" ]; then
-            "$_git_cmd" checkout "${NEXT_BRANCH}" \
+            # Via __scmb_git so a branch living in a worktree cd's there
+            # instead of failing as already-checked-out.
+            __scmb_git checkout "${NEXT_BRANCH}" \
               && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
           else
             echo "Already on branch ${NEXT_BRANCH}."
