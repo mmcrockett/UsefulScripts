@@ -20,11 +20,6 @@ alias gl8='gl -8'
 alias git-config-mmcrockett='git config --local user.email "github@mmcrockett.com"'
 alias gdno='gd --name-only'
 
-function git-commit-wip {
-  GIT_HOOKS_OFF=true git add -A
-  GIT_HOOKS_OFF=true git rm $(git ls-files --deleted) 2> /dev/null
-  GIT_HOOKS_OFF=true git commit -m '--wip--'
-}
 function gco-story {
   local old_pwd="${PWD}"
   local story_id="nostory"

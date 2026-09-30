@@ -177,13 +177,22 @@ function git-smash {
 
   return ${STATUS}
 }
-function git-commit-smash {
+function git-commit-all {
   local SCRIPT="${FUNCNAME[0]}"
+  local MESSAGE="${1:-...}"
+  local STATUS=0
 
-  logCmnd git add -A || return $?
-  logCmnd git commit -m '...' || return $?
+  export GIT_HOOKS_OFF="TRUE"
+  logCmnd git add -A && logCmnd git commit -m "${MESSAGE}" || STATUS=$?
+  unset GIT_HOOKS_OFF
 
-  git-smash
+  return ${STATUS}
+}
+function git-commit-wip {
+  git-commit-all '--wip--'
+}
+function git-commit-smash {
+  git-commit-all '...' && git-smash
 }
 function git-commit-smash-push {
   git-commit-smash && git-force-push-branch
