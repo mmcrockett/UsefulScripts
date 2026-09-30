@@ -148,7 +148,24 @@ scmb_wrapped_shell_commands=(
 shell_ls_aliases_enabled="true"
 
 function git-default-branch-name {
-  echo "$(git branch -rl '*/HEAD' | rev | cut -d/ -f1 | rev)"
+  local NAME="$($_git_cmd symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | cut -d/ -f2-)"
+
+  if [ -z "${NAME}" ]; then
+    NAME="$($_git_cmd branch -rl '*/HEAD' 2>/dev/null | rev | cut -d/ -f1 | rev)"
+  fi
+
+  if [ -z "${NAME}" ]; then
+    local CANDIDATE=""
+
+    for CANDIDATE in main master; do
+      if $_git_cmd show-ref --verify --quiet "refs/remotes/origin/${CANDIDATE}"; then
+        NAME="${CANDIDATE}"
+        break
+      fi
+    done
+  fi
+
+  echo "${NAME}"
 }
 function git-branch-history {
   local G="$($_git_cmd rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"

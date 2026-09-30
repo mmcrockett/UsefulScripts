@@ -25,47 +25,6 @@ function git-commit-wip {
   GIT_HOOKS_OFF=true git rm $(git ls-files --deleted) 2> /dev/null
   GIT_HOOKS_OFF=true git commit -m '--wip--'
 }
-function git-commit-message-from-branch {
-  local description="$(gb --show-current)"
-  local description_parts=()
-  local prefix="💥"
-  local story_id=""
-
-  while [[ "${description}" =~ ([[:alnum:]]+)(.*) ]]; do
-    word="${BASH_REMATCH[1]}"
-    description="${BASH_REMATCH[2]}"
-
-    if [[ "$word" =~ ^[a-zA-Z0-9]{9}$ ]] && [[ "$word" =~ ^[0-9]{2,} ]]; then
-      story_id="$word"
-    elif [[ "$word" == "${USER}" ]]; then
-      username="$word"
-    else
-      if [[ "$word" == "fix" ]] || [[ "$word" == "bug" ]]; then
-        # Randomly choose between beetle and ladybug
-        if (( RANDOM % 2 )); then
-          prefix="🪲"
-        else
-          prefix="🐞"
-        fi
-      fi
-      # Check if current word is 'speed' or 'faster'
-      if [[ "$word" == "speed" ]] || [[ "$word" == "faster" ]]; then
-        # Randomly choose between rocket and racehorse
-        if (( RANDOM % 2 )); then
-          prefix="🚀"
-        else
-          prefix="🐎"
-        fi
-      fi
-
-      description_parts+=("$word")
-    fi
-  done
-
-  # Join description parts with spaces
-  description=$(printf "%s " "${description_parts[@]}" | sed 's/ $//')
-  echo "${USER}/${story_id}${prefix}${description}"
-}
 function gco-story {
   local old_pwd="${PWD}"
   local story_id="nostory"
@@ -119,16 +78,4 @@ function gco-story {
   done
 
   cd "${old_pwd}"
-}
-function gci-story {
-  local description="$(git-commit-message-from-branch)"
-
-  printf "$(basename "$PWD") => '${description}'"
-
-  if git add -A &> /dev/null && git commit -a -m "${description}" &> /dev/null; then
-    echo " ✅"
-  else
-    echo " ❌"
-    return 1
-  fi
 }
