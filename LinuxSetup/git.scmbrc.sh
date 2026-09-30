@@ -17,6 +17,9 @@ export GIT_SETUP_ALIASES="yes"
 # - Set the following option to 'yes' if you want to turn off shell completion setup
 export GIT_SKIP_SHELL_COMPLETION="yes"
 
+# - Rewrite '-N' args into git revisions for diff/difftool/reset/blame.
+export GIT_REVISION_SHORTCUTS="yes"
+
 # Git Index Config
 # ----------------------------------------------
 # Repos will be automatically added from this directory.
@@ -49,7 +52,7 @@ git_reset_alias="grs"
 git_reset_hard_alias="grsh"
 git_rm_alias="grm"
 git_blame_alias="gbl"
-git_diff_alias="gd_scmb"
+git_diff_alias="gd"
 git_diff_no_whitespace_alias="gdnw"
 git_diff_file_alias="gdf"
 git_diff_word_alias="gdw"
@@ -220,21 +223,6 @@ function git-record-branch-switch {
 
   if [ -n "${TO}" ]; then
     git-branch-history rm "${TO}"
-  fi
-}
-function gd {
-  if [[ "$1" =~ ^-[0-9]+$ ]]; then
-    local n="${1#-}"
-    local prev_tildes=$(printf '~%.0s' $(seq 1 "$n"))
-    local curr_tildes=$(printf '~%.0s' $(seq 1 $((n - 1))))
-
-    if (( n == 1 )); then
-      curr_tildes=""
-    fi
-
-    exec_scmb_expand_args --relative "$_git_cmd" diff "HEAD${prev_tildes}..HEAD${curr_tildes}" "${@:2}"
-  else
-    exec_scmb_expand_args --relative "$_git_cmd" diff "$@"
   fi
 }
 function gwtaf {
