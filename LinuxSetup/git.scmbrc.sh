@@ -168,6 +168,19 @@ function git-default-branch-name {
     done
   fi
 
+  # No remote at all (e.g. a fresh `git init`): fall back to a local branch, so
+  # callers like git-record-branch-switch still know what to treat as default.
+  if [ -z "${NAME}" ]; then
+    local LOCAL_CANDIDATE=""
+
+    for LOCAL_CANDIDATE in main master; do
+      if $_git_cmd show-ref --verify --quiet "refs/heads/${LOCAL_CANDIDATE}"; then
+        NAME="${LOCAL_CANDIDATE}"
+        break
+      fi
+    done
+  fi
+
   echo "${NAME}"
 }
 function git-branch-history {
