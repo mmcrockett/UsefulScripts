@@ -171,45 +171,56 @@ function git-default-branch-name {
   echo "${NAME}"
 }
 function git-branch-history {
+  local SCRIPT="${FUNCNAME[0]}"
   local G="$($_git_cmd rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
 
-  if [ -n "${G}" ]; then
-    local F="${G}/CHECKOUT_HISTORY"
-    local C_M_D="${1}"
-    local BRANCH="${2}"
-    local R=""
+  [ -z "${G}" ] && return 0
 
-    if [ ! -f "${F}" ]; then
-      touch "${F}"
-    fi
+  local F="${G}/CHECKOUT_HISTORY"
+  local C_M_D="${1}"
+  local BRANCH="${2}"
+  local LINE=""
 
-    case $C_M_D in
-      add|rm|-d|-D)
-        local T="$(mktemp)"
+  [ -f "${F}" ] || touch "${F}"
 
-        grep -vw "^${BRANCH}$" "${F}" > "${T}" || true
-        mv "${T}" "${F}";;
-      last)
-        local LAST=""
+  case ${C_M_D} in
+    add|rm)
+      local T=""
 
-        if [ -n "${BRANCH}" ]; then
-          LAST="$(grep -vw "^${BRANCH}$" "${F}" | tail -n 1)"
-        else
-          LAST="$(tail -n 1 ${F})"
-        fi
+      T="$(mktemp)" || return $?
 
-        echo "${LAST}";;
-      *)
-        abort "`git-branch-history` unknown option ${C_M_D}";;
-    esac
+      # Drop the named branch, and any branch that no longer exists, so
+      # `git checkout -` can never land on a deleted ref.
+      while IFS= read -r LINE; do
+        [ -z "${LINE}" ] && continue
+        [ "${LINE}" = "${BRANCH}" ] && continue
+        $_git_cmd show-ref --verify --quiet "refs/heads/${LINE}" || continue
 
+        printf '%s\n' "${LINE}"
+      done < "${F}" > "${T}"
 
-    if [[ "add" == "${C_M_D}" ]]; then
-      if [ -n "${BRANCH}" ]; then
-        echo "${BRANCH}" >> "${F}"
+      mv "${T}" "${F}" || return $?
+
+      if [ "add" = "${C_M_D}" ] && [ -n "${BRANCH}" ]; then
+        printf '%s\n' "${BRANCH}" >> "${F}"
       fi
-    fi
-  fi
+      ;;
+    last)
+      local LAST=""
+
+      while IFS= read -r LINE; do
+        [ -z "${LINE}" ] && continue
+        [ "${LINE}" = "${BRANCH}" ] && continue
+        $_git_cmd show-ref --verify --quiet "refs/heads/${LINE}" && LAST="${LINE}"
+      done < "${F}"
+
+      echo "${LAST}"
+      ;;
+    *)
+      abort "unknown option ${C_M_D}"
+      return 1
+      ;;
+  esac
 }
 function git-record-branch-switch {
   local FROM="${1}"

@@ -231,16 +231,7 @@ function git-resync-rebase-push-branch {
   git-resync-rebase && git-force-push-branch
 }
 function git-current-branch {
-  echo "$(git rev-parse --abbrev-ref HEAD)"
-}
-function git-is-current-branch {
-  local BRANCH="${1}"
-
-  if [ -n "${BRANCH}" ] && [ "$(git-current-branch)" = "${BRANCH}" ]; then
-    echo "${BRANCH}"
-  else
-    echo ""
-  fi
+  "$_git_cmd" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 function git-ssh-add {
   local KEY=~/.ssh/githubpw
@@ -278,7 +269,7 @@ function git {
       if [[ "-" == "${2}" ]]; then
         local NEXT_BRANCH="$(git-branch-history last "${START_BRANCH}")"
         if [ -n "${NEXT_BRANCH}" ]; then
-          if [ -z "$(git-is-current-branch "${NEXT_BRANCH}")" ]; then
+          if [ "${NEXT_BRANCH}" != "${START_BRANCH}" ]; then
             "$_git_cmd" checkout "${NEXT_BRANCH}" \
               && git-record-branch-switch "${START_BRANCH}" "${NEXT_BRANCH}"
           else
