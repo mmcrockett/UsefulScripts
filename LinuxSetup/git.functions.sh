@@ -191,24 +191,47 @@ function git-resync-main-repo {
   fi
 }
 function git-force-push-branch {
+  local SCRIPT="${FUNCNAME[0]}"
   local DEFAULT_BRANCH="$(git-default-branch-name)"
+  local CURRENT_BRANCH="$(git-current-branch)"
 
-  if [ -z "$(git-is-current-branch ${DEFAULT_BRANCH})" ]; then
-    logCmnd git push --force-with-lease origin "$(git-current-branch)"
-  else
-    abort "No force push ${DEFAULT_BRANCH}!"
+  if [ -z "${DEFAULT_BRANCH}" ]; then
+    abort "Cannot determine the default branch, refusing to force push."
+    return 1
   fi
+
+  if [ -z "${CURRENT_BRANCH}" ] || [ "HEAD" = "${CURRENT_BRANCH}" ]; then
+    abort "Detached HEAD, refusing to force push."
+    return 1
+  fi
+
+  if [ "${CURRENT_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
+    abort "No force push ${DEFAULT_BRANCH}!"
+    return 1
+  fi
+
+  logCmnd git push --force-with-lease origin "${CURRENT_BRANCH}"
 }
 function git-smash {
+  local SCRIPT="${FUNCNAME[0]}"
+  local STATUS=0
+
   export GIT_HOOKS_OFF="TRUE"
-  logCmnd git rebase -i HEAD~${1:-2}
+  logCmnd git rebase -i "HEAD~${1:-2}" || STATUS=$?
   unset GIT_HOOKS_OFF
-}
-function git-commit-smash-push {
-  logCmnd git commit -m '...' . && git-smash && git-force-push-branch
+
+  return ${STATUS}
 }
 function git-commit-smash {
-  logCmnd git commit -m '...' . && git-smash
+  local SCRIPT="${FUNCNAME[0]}"
+
+  logCmnd git add -A || return $?
+  logCmnd git commit -m '...' || return $?
+
+  git-smash
+}
+function git-commit-smash-push {
+  git-commit-smash && git-force-push-branch
 }
 function git-resync-rebase {
   local START_BRANCH="$(git-current-branch)"
