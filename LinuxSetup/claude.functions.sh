@@ -106,14 +106,16 @@ function claude {
 
   local last_dir="${PWD##*/}"
 
+  claude-bg
+
+  local claude_theme="{\"theme\":\"${CLAUDE_THEME_VALUE}\"}"
+
   if [[ $# -eq 0 ]]; then
-    claude-bg
-    command claude --settings "{\"theme\":\"${CLAUDE_THEME_VALUE}\"}" --name "${last_dir}"
+    command claude --settings ${claude_theme} --name "${last_dir}"
   elif [[ "$1" == -* ]]; then
-    command claude "$@"
+    command claude --settings ${claude_theme} "$@"
   else
-    claude-bg
-    command claude --settings "{\"theme\":\"${CLAUDE_THEME_VALUE}\"}" --name "${last_dir} $*" "$*"
+    command claude --settings ${claude_theme} --name "${last_dir} $*" "$*"
   fi
 }
 
