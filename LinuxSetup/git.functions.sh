@@ -311,6 +311,7 @@ function git {
       ;;
     home)
       local MAIN_BRANCH="$(git-default-branch-name)"
+      local START_BRANCH="$(git-current-branch)"
 
       if [ -z "${MAIN_BRANCH}" ]; then
         abort "Cannot determine the default branch."
@@ -329,7 +330,8 @@ function git {
         cd "${MAIN_DIR}" || return $?
       fi
 
-      "$_git_cmd" checkout "${MAIN_BRANCH}"
+      "$_git_cmd" checkout "${MAIN_BRANCH}" \
+        && git-record-branch-switch "${START_BRANCH}" "${MAIN_BRANCH}"
       ;;
     push)
       git-ssh-add
