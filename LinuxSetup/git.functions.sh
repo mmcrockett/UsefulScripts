@@ -1,8 +1,33 @@
 function gwta {
+  local SCRIPT="${FUNCNAME[0]}"
   local BRANCH="${1}"
+  local START_POINT="${2}"
 
-  if [[ -n "${BRANCH}" && "${BRANCH}" != -* && "${BRANCH}" != *"${USER}"* ]]; then
+  if [ -z "${BRANCH}" ]; then
+    abort "Usage: ${SCRIPT} <branch> [start-point]"
+    return 1
+  fi
+
+  if [[ "${BRANCH}" != -* && "${BRANCH}" != "${USER}/"* ]]; then
     BRANCH="${USER}/${BRANCH}"
+  fi
+
+  # Default new work to the default branch on origin rather than whatever HEAD
+  # happens to be. Pass a start-point to override, or an existing branch name
+  # to just open a worktree for it.
+  if [ -z "${START_POINT}" ]; then
+    local DEFAULT_BRANCH="$(git-default-branch-name)"
+
+    if [ -n "${DEFAULT_BRANCH}" ] \
+      && "$_git_cmd" show-ref --verify --quiet "refs/remotes/origin/${DEFAULT_BRANCH}"; then
+      START_POINT="origin/${DEFAULT_BRANCH}"
+    fi
+  fi
+
+  # Create the branch first so scm_breeze still picks the worktree directory;
+  # passing a commit-ish straight to `worktree add` detaches HEAD instead.
+  if [ -n "${START_POINT}" ] && ! "$_git_cmd" show-ref --verify --quiet "refs/heads/${BRANCH}"; then
+    logCmnd "$_git_cmd" branch --no-track "${BRANCH}" "${START_POINT}" || return $?
   fi
 
   git worktree add "${BRANCH}" && git checkout "${BRANCH}"
@@ -285,11 +310,26 @@ function git {
       fi
       ;;
     home)
-      if [ -n "$(git-is-worktree)" ]; then
-        local MAIN_DIR="$("$_git_cmd" worktree list | head -1 | awk '{print $1}')"
-        cd "${MAIN_DIR}"
+      local MAIN_BRANCH="$(git-default-branch-name)"
+
+      if [ -z "${MAIN_BRANCH}" ]; then
+        abort "Cannot determine the default branch."
+        return 1
       fi
-      "$_git_cmd" checkout "$(git-default-branch-name)"
+
+      if [ -n "$(git-is-worktree)" ]; then
+        local MAIN_DIR="$("$_git_cmd" worktree list --porcelain \
+          | awk '/^worktree /{print substr($0, 10); exit}')"
+
+        if [ -z "${MAIN_DIR}" ]; then
+          abort "Cannot locate the main worktree."
+          return 1
+        fi
+
+        cd "${MAIN_DIR}" || return $?
+      fi
+
+      "$_git_cmd" checkout "${MAIN_BRANCH}"
       ;;
     push)
       git-ssh-add
