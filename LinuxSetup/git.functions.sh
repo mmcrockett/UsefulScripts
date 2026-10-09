@@ -246,7 +246,8 @@ function git-resync-rebase {
   export GIT_HOOKS_OFF="TRUE"
   git-handle-pr-merged \
     && git checkout "${START_BRANCH}" \
-    && git rebase "${MAIN_BRANCH}" \
+    && git fetch origin \
+    && git rebase "origin/${MAIN_BRANCH}" \
     || STATUS=$?
   unset GIT_HOOKS_OFF
 
