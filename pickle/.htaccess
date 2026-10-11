@@ -1,0 +1,5 @@
+Require all denied
+<FilesMatch "^(index|cancel)\.php$">
+  Require all granted
+</FilesMatch>
+DirectoryIndex index.php

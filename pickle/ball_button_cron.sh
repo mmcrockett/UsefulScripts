@@ -1,14 +1,13 @@
 #!/bin/sh
 # Wraps a ball_button.rb cron job: applies the setlock, captures output to
-# its usual log, and appends a JSON line to ball_button.errors.log on
-# failure - so crontab stays a one-line-per-job list instead of repeating
+# its usual log, and records a failed run in History on a non-zero exit -
+# so crontab stays a one-line-per-job list instead of repeating
 # this setlock/redirect/printf boilerplate on every line.
 #
 # Usage: ball_button_cron.sh {dryrun|schedule|reserve|reserve2}
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 BB="$DIR/ball_button.sh"
-ERRORS_LOG="$DIR/ball_button.errors.log"
 
 case "$1" in
   dryrun)
@@ -20,7 +19,7 @@ case "$1" in
   schedule)
     LOCK=/tmp/cronlock.817513.396513
     LOG="$DIR/ball_button.cron.schedule.log"
-    SUBCOMMAND="generate-schedule"
+    SUBCOMMAND="sync"
     ;;
   reserve)
     LOCK=/tmp/cronlock.817513.396513
@@ -42,7 +41,5 @@ esac
 STATUS=$?
 
 if [ "$STATUS" -ne 0 ]; then
-  printf '{"time":"%s","context":"cron","message":"%s failed (exit %s) - see %s"}\n' \
-    "$(date -Iseconds)" "${1} ${SUBCOMMAND}" "$STATUS" "$(basename "$LOG")" \
-    >> "$ERRORS_LOG"
+  "$BB" record-failure "${1} ${SUBCOMMAND}" "$STATUS" >> "$LOG" 2>&1 || true
 fi
