@@ -100,6 +100,7 @@ class BallButton
 
     location_response = checkin_location
     checkin_member(next_check_in.id) if location_response.ok?
+    @bookings = nil
     note("checked in #{slot_label(Time.parse(next_check_in.start_time))}") if location_response.ok?
     location_response
   end
@@ -220,27 +221,29 @@ class BallButton
       is_coach: false
     }
 
-    @bookings ||= request(:post,
-      url,
-      context: 'bookings',
-      body: data.to_json,
-      headers: user_token_header
-    ).parsed_response.dig('payload', 'bookings_history') || []
+    @bookings ||= begin
+      list = request(:post,
+        url,
+        context: 'bookings',
+        body: data.to_json,
+        headers: user_token_header
+      ).parsed_response.dig('payload', 'bookings_history') || []
 
-    @bookings.map do |appt|
-      Struct.new(
-        :id,
-        :court,
-        :checkins,
-        :start_time,
-        :end_time
-      ).new(
-        appt['id'],
-        appt['court_names'],
-        booking(appt['id']).checkins,
-        appt['start_time'],
-        appt['end_time']
-      )
+      list.map do |appt|
+        Struct.new(
+          :id,
+          :court,
+          :checkins,
+          :start_time,
+          :end_time
+        ).new(
+          appt['id'],
+          appt['court_names'],
+          booking(appt['id']).checkins,
+          appt['start_time'],
+          appt['end_time']
+        )
+      end
     end
   end
 
