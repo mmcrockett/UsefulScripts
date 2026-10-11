@@ -1,5 +1,5 @@
 Require all granted
-<FilesMatch "^(?!(index|cancel)\.php$)">
+<FilesMatch "\.(json|rb|sh|log)$|\.sqlite3(-.*)?$">
   Require all denied
 </FilesMatch>
 DirectoryIndex index.php
