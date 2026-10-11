@@ -17,6 +17,9 @@ export GIT_SETUP_ALIASES="yes"
 # - Set the following option to 'yes' if you want to turn off shell completion setup
 export GIT_SKIP_SHELL_COMPLETION="yes"
 
+# - Rewrite '-N' args into git revisions for diff/difftool/reset/blame.
+export GIT_REVISION_SHORTCUTS="yes"
+
 # Git Index Config
 # ----------------------------------------------
 # Repos will be automatically added from this directory.
@@ -49,7 +52,7 @@ git_reset_alias="grs"
 git_reset_hard_alias="grsh"
 git_rm_alias="grm"
 git_blame_alias="gbl"
-git_diff_alias="gd_scmb"
+git_diff_alias="gd"
 git_diff_no_whitespace_alias="gdnw"
 git_diff_file_alias="gdf"
 git_diff_word_alias="gdw"
@@ -148,48 +151,89 @@ scmb_wrapped_shell_commands=(
 shell_ls_aliases_enabled="true"
 
 function git-default-branch-name {
-  echo "$(git branch -rl '*/HEAD' | rev | cut -d/ -f1 | rev)"
+  local NAME="$($_git_cmd symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | cut -d/ -f2-)"
+
+  if [ -z "${NAME}" ]; then
+    NAME="$($_git_cmd branch -rl '*/HEAD' 2>/dev/null | rev | cut -d/ -f1 | rev)"
+  fi
+
+  if [ -z "${NAME}" ]; then
+    local CANDIDATE=""
+
+    for CANDIDATE in main master; do
+      if $_git_cmd show-ref --verify --quiet "refs/remotes/origin/${CANDIDATE}"; then
+        NAME="${CANDIDATE}"
+        break
+      fi
+    done
+  fi
+
+  # No remote at all (e.g. a fresh `git init`): fall back to a local branch, so
+  # callers like git-record-branch-switch still know what to treat as default.
+  if [ -z "${NAME}" ]; then
+    local LOCAL_CANDIDATE=""
+
+    for LOCAL_CANDIDATE in main master; do
+      if $_git_cmd show-ref --verify --quiet "refs/heads/${LOCAL_CANDIDATE}"; then
+        NAME="${LOCAL_CANDIDATE}"
+        break
+      fi
+    done
+  fi
+
+  echo "${NAME}"
 }
 function git-branch-history {
+  local SCRIPT="${FUNCNAME[0]}"
   local G="$($_git_cmd rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
 
-  if [ -n "${G}" ]; then
-    local F="${G}/CHECKOUT_HISTORY"
-    local C_M_D="${1}"
-    local BRANCH="${2}"
-    local R=""
+  [ -z "${G}" ] && return 0
 
-    if [ ! -f "${F}" ]; then
-      touch "${F}"
-    fi
+  local F="${G}/CHECKOUT_HISTORY"
+  local C_M_D="${1}"
+  local BRANCH="${2}"
+  local LINE=""
 
-    case $C_M_D in
-      add|rm|-d|-D)
-        local T="$(mktemp)"
+  [ -f "${F}" ] || touch "${F}"
 
-        grep -vw "^${BRANCH}$" "${F}" > "${T}" || true
-        mv "${T}" "${F}";;
-      last)
-        local LAST=""
+  case ${C_M_D} in
+    add|rm)
+      local T=""
 
-        if [ -n "${BRANCH}" ]; then
-          LAST="$(grep -vw "^${BRANCH}$" "${F}" | tail -n 1)"
-        else
-          LAST="$(tail -n 1 ${F})"
-        fi
+      T="$(mktemp)" || return $?
 
-        echo "${LAST}";;
-      *)
-        abort "`git-branch-history` unknown option ${C_M_D}";;
-    esac
+      # Drop the named branch, and any branch that no longer exists, so
+      # `git checkout -` can never land on a deleted ref.
+      while IFS= read -r LINE; do
+        [ -z "${LINE}" ] && continue
+        [ "${LINE}" = "${BRANCH}" ] && continue
+        $_git_cmd show-ref --verify --quiet "refs/heads/${LINE}" || continue
 
+        printf '%s\n' "${LINE}"
+      done < "${F}" > "${T}"
 
-    if [[ "add" == "${C_M_D}" ]]; then
-      if [ -n "${BRANCH}" ]; then
-        echo "${BRANCH}" >> "${F}"
+      mv "${T}" "${F}" || return $?
+
+      if [ "add" = "${C_M_D}" ] && [ -n "${BRANCH}" ]; then
+        printf '%s\n' "${BRANCH}" >> "${F}"
       fi
-    fi
-  fi
+      ;;
+    last)
+      local LAST=""
+
+      while IFS= read -r LINE; do
+        [ -z "${LINE}" ] && continue
+        [ "${LINE}" = "${BRANCH}" ] && continue
+        $_git_cmd show-ref --verify --quiet "refs/heads/${LINE}" && LAST="${LINE}"
+      done < "${F}"
+
+      echo "${LAST}"
+      ;;
+    *)
+      abort "unknown option ${C_M_D}"
+      return 1
+      ;;
+  esac
 }
 function git-record-branch-switch {
   local FROM="${1}"
@@ -203,21 +247,6 @@ function git-record-branch-switch {
 
   if [ -n "${TO}" ]; then
     git-branch-history rm "${TO}"
-  fi
-}
-function gd {
-  if [[ "$1" =~ ^-[0-9]+$ ]]; then
-    local n="${1#-}"
-    local prev_tildes=$(printf '~%.0s' $(seq 1 "$n"))
-    local curr_tildes=$(printf '~%.0s' $(seq 1 $((n - 1))))
-
-    if (( n == 1 )); then
-      curr_tildes=""
-    fi
-
-    exec_scmb_expand_args --relative "$_git_cmd" diff "HEAD${prev_tildes}..HEAD${curr_tildes}" "${@:2}"
-  else
-    exec_scmb_expand_args --relative "$_git_cmd" diff "$@"
   fi
 }
 function gwtaf {

@@ -995,7 +995,13 @@ function hey-triage {
 }
 function pbcopy {
   if [ $# -eq 0 ]; then
-    echo "Usage (mcrockett fn): pbcopy filename" && return 1
+    if [ -t 0 ]; then
+      echo "Usage (mcrockett fn): pbcopy filename (or pipe/redirect stdin)" && return 1
+    else
+      command pbcopy
+    fi
+  elif [ ! -f "${1}" ]; then
+    echo "pbcopy: ${1}: No such file" >&2 && return 1
   else
     cat "${1}" | command pbcopy
   fi

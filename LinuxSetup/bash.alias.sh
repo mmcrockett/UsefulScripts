@@ -24,3 +24,4 @@ alias purplebg="echo -ne '\e]11;#2D004D\e\\'"
 alias ssh-gcp-rails-instance="ssh -i ${HOME}/.ssh/gcp-rails-instance google@34.71.24.199"
 alias firefox-prune-180-days="firefox-prune-storage --days 180 --delete"
 alias cl="claude"
+alias mission-control='open -a "Mission Control"'
