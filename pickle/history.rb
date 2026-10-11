@@ -16,7 +16,7 @@ module History
       user TEXT,
       status TEXT NOT NULL DEFAULT 'running',
       summary TEXT,
-      routine INTEGER NOT NULL DEFAULT 0
+      detail TEXT
     );
     CREATE TABLE IF NOT EXISTS requests (
       id INTEGER PRIMARY KEY,
@@ -50,6 +50,7 @@ module History
         db.busy_timeout = 5000
         db.execute('PRAGMA foreign_keys = ON')
         db.execute_batch(SCHEMA)
+        add_missing_columns(db)
       end
     end
 
@@ -62,12 +63,12 @@ module History
       @run_id = db.last_insert_row_id
     end
 
-    def finish_run(status:, summary: nil, routine: false)
+    def finish_run(status:, summary: nil, detail: nil)
       return unless @run_id
 
       db.execute(
-        'UPDATE runs SET finished_at = ?, status = ?, summary = ?, routine = ? WHERE id = ?',
-        [now, status, summary, routine ? 1 : 0, @run_id]
+        'UPDATE runs SET finished_at = ?, status = ?, summary = ?, detail = ? WHERE id = ?',
+        [now, status, summary, detail, @run_id]
       )
     end
 
@@ -99,6 +100,11 @@ module History
     end
 
     private
+
+    def add_missing_columns(db)
+      columns = db.execute('PRAGMA table_info(runs)').map { |col| col[1] }
+      db.execute('ALTER TABLE runs ADD COLUMN detail TEXT') unless columns.include?('detail')
+    end
 
     def now
       Time.now.utc.iso8601

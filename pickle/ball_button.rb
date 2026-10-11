@@ -97,11 +97,10 @@ class BallButton
     end
 
     puts "checkin: checking in booking #{next_check_in.id} (#{next_check_in.start_time}) at #{now}"
-    @checkin_attempted = true
-    note("checkin booking #{next_check_in.id}")
 
     location_response = checkin_location
     checkin_member(next_check_in.id) if location_response.ok?
+    note("checked in #{slot_label(Time.parse(next_check_in.start_time))}") if location_response.ok?
     location_response
   end
 
@@ -149,10 +148,14 @@ class BallButton
 
   def finish_run(command, error: nil)
     failed = error || @failed
-    summary = error ? error.message[0, 500] : @notes&.join('; ')
-    routine = command == 'sync' && !failed && !@checkin_attempted
+    summary = @notes&.join('; ')
+    detail = [@details, error&.message&.slice(0, 500)].flatten.compact.join("\n")
 
-    History.finish_run(status: failed ? 'error' : 'ok', summary: summary, routine: routine)
+    History.finish_run(
+      status: failed ? 'error' : 'ok',
+      summary: summary,
+      detail: detail.empty? ? nil : detail
+    )
   end
 
   def user_id
@@ -292,6 +295,7 @@ class BallButton
   def reserve(start, minutes: nil, court: nil, dry_run: false)
     minutes ||= 90
     court ||= 'ANY'
+    court_label = court.to_s.upcase == 'ANY' ? 'any court' : "court #{court}"
     court = COURTS[court.to_s.upcase] || court
     court = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ALL'
     attempts = [COURT_5C, COURT_5D, COURT_6A, COURT_6B] if court.to_s.upcase == 'ANY'
@@ -299,6 +303,7 @@ class BallButton
     (hr, min) = start.split(':')
     start_time = central_time_at(days_offset: 7, hr: hr, min: min)
     end_time = start_time + (60 * minutes.to_i)
+    slot = "#{slot_label(start_time, end_time)} #{court_label}"
 
     (attempts || [court]).each do |c|
       data = {
@@ -326,10 +331,11 @@ class BallButton
                     call(:post, RESERVE_URL, context: 'reserve', body: data.to_json,
                                              headers: user_token_header)
                   end
-      return note_reservation(start_time, c, dry_run) if @response.ok?
+      detail("#{court_name(c)}: #{response_message(@response)}")
+      return note_reservation(slot, dry_run) if @response.ok?
     end
 
-    fail_note("reserve #{start_time.utc.iso8601}: #{response_message(@response)}")
+    fail_note("#{'dry run ' if dry_run}failed to book #{slot}")
     @response
   end
 
@@ -344,9 +350,24 @@ class BallButton
     note(text)
   end
 
-  def note_reservation(start_time, court, dry_run)
-    note("#{'dry run ' if dry_run}reserved #{start_time.utc.iso8601} court #{court}")
+  def detail(text)
+    (@details ||= []) << text
+  end
+
+  def note_reservation(slot, dry_run)
+    note("#{'dry run ' if dry_run}booked #{slot}")
     @response
+  end
+
+  def court_name(court)
+    [court].flatten.map { |id| COURTS.key(id) || id }.join(', ')
+  end
+
+  def slot_label(start_time, end_time = nil)
+    from = CHICAGO_TZ.to_local(start_time)
+    return from.strftime('%a %b %-d %-l:%M%P') unless end_time
+
+    "#{from.strftime('%a %b %-d %-l:%M')}-#{CHICAGO_TZ.to_local(end_time).strftime('%-l:%M%P')}"
   end
 
   def response_message(response)
