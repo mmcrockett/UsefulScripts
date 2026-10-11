@@ -37,7 +37,6 @@ function open_db(): ?PDO
     return new PDO('sqlite:' . $path, null, null, $options);
 }
 
-$showAll = isset($_GET['all']);
 $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
 $db = open_db();
 $bookings = [];
@@ -48,9 +47,7 @@ if ($db) {
     $bookings = $db->query('SELECT * FROM bookings ORDER BY start_time')->fetchAll(PDO::FETCH_ASSOC);
 
     $cutoff = $now->modify('-' . HISTORY_DAYS . ' days')->format('Y-m-d\TH:i:s\Z');
-    $stmt = $db->prepare(
-        'SELECT * FROM runs WHERE started_at >= ?' . ($showAll ? '' : ' AND routine = 0') . ' ORDER BY started_at DESC, id DESC'
-    );
+    $stmt = $db->prepare('SELECT * FROM runs WHERE started_at >= ? ORDER BY started_at DESC, id DESC');
     $stmt->execute([$cutoff]);
     $runs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -109,20 +106,19 @@ if ($db) {
   <?= $bookings ? 'Refreshed ' . h(local_time($bookings[0]['refreshed_at'], 'l F d Y g:ia')) : 'No upcoming bookings.' ?>
 </figcaption>
 
-<h5 class="pt-4">
-  History (last <?= HISTORY_DAYS ?> days)
-  <a class="small ms-2" href="<?= $showAll ? 'index.php' : '?all=1' ?>"><?= $showAll ? 'hide routine refreshes' : 'show routine refreshes' ?></a>
-</h5>
+<h5 class="pt-4">History (last <?= HISTORY_DAYS ?> days)</h5>
 <?php if (!$runs): ?>
 <p class="text-muted small">Nothing recorded.</p>
 <?php endif; ?>
-<?php foreach ($runs as $run): $requests = $requestsByRun[$run['id']] ?? []; ?>
+<?php foreach ($runs as $run): $requests = $requestsByRun[$run['id']] ?? []; $detail = $run['detail'] ?? null; ?>
 <details class="mb-2">
-  <summary class="h6">
-    <?= h(local_time($run['started_at'], 'D M d g:i:sa')) ?> - <?= h($run['command']) ?>
+  <summary class="h6"<?= $detail ? ' title="' . h($detail) . '"' : '' ?>>
+    <?= h(local_time($run['started_at'], 'D g:i:sa')) ?>
     <span class="badge <?= $run['status'] === 'ok' ? 'text-bg-success' : ($run['status'] === 'error' ? 'text-bg-danger' : 'text-bg-secondary') ?>"><?= h($run['status']) ?></span>
-    <span class="text-muted small"><?= count($requests) ?> request<?= count($requests) === 1 ? '' : 's' ?><?= $run['summary'] ? ' - ' . h($run['summary']) : '' ?></span>
+    <?= h($run['summary'] ?: $run['command']) ?>
+    <span class="text-muted small"><?= h($run['command']) ?>, <?= count($requests) ?> request<?= count($requests) === 1 ? '' : 's' ?></span>
   </summary>
+  <?php if ($detail): ?><pre class="ms-3 small text-muted"><?= h($detail) ?></pre><?php endif; ?>
   <?php foreach ($requests as $r): ?>
   <div class="ms-3 mb-3 small">
     <div>
