@@ -2,6 +2,7 @@ require 'httparty'
 require 'json'
 require 'time'
 require 'tzinfo'
+require_relative 'history'
 
 class BallButton
   include HTTParty
@@ -25,9 +26,6 @@ class BallButton
   CHECKIN_WINDOW_AFTER_MIN = 150
   REQUEST_MAX_ATTEMPTS = 3
   REQUEST_BACKOFF_BASE_SEC = 2
-  ERROR_LOG_PATH = "#{__dir__}/ball_button.errors.log"
-  ERROR_LOG_RETENTION_DAYS = 30
-  ERROR_DISPLAY_DAYS = 7
 
   USERS = JSON.parse(
     File.read("#{__dir__}/ball_button.users.json")
@@ -99,6 +97,8 @@ class BallButton
     end
 
     puts "checkin: checking in booking #{next_check_in.id} (#{next_check_in.start_time}) at #{now}"
+    @checkin_attempted = true
+    note("checkin booking #{next_check_in.id}")
 
     location_response = checkin_location
     checkin_member(next_check_in.id) if location_response.ok?
@@ -108,6 +108,7 @@ class BallButton
   def checkin_location(location_id: '134')
     request(:post,
       CHECKIN_LOCATION_URL,
+      context: 'checkin_location',
       body: {location_id: location_id}.to_json,
       headers: user_token_header
     )
@@ -116,121 +117,42 @@ class BallButton
   def checkin_member(booking_id)
     request(:post,
       "#{CHECKIN_MEMBER_URL}/#{booking_id}",
+      context: 'checkin_member',
       body: {date: central_time_at, users: [user_id]}.to_json,
       headers: user_token_header
     )
   end
 
-  def generate_schedule
+  def sync
     begin
       check_in_next
     rescue => e
-      log_error('check_in_next', e)
+      fail_note("check_in_next: #{e.message}")
     end
 
-    html_rows = bookings.sort_by {|booking| Time.parse(booking.start_time) }.map do |booking|
-      symbol = booking.checkins.nil? || booking.checkins.empty? ? '➖' : '✅'
-      time_display = [
-          central_time_human(booking.start_time, format: :time),
-          central_time_human(booking.end_time, format: :time)
-      ].join(' - ')
-
-      cancel_cell = if Time.parse(booking.start_time) > Time.now
-        <<~CANCEL_HTML
-          <span role="button" data-apt-id="#{booking.id}" onclick="openCancelModal(this)">❌</span>
-        CANCEL_HTML
-      else
-        ''
-      end
-
-      <<~HTML
-         <tr>
-            <td>#{central_time_human(booking.start_time)}</td>
-            <td>#{time_display}</td>
-            <td>#{booking.court}</td>
-            <td>#{symbol}</td>
-            <td>#{cancel_cell}</td>
-        </tr>
-      HTML
-    end
-
-    error_sections = recent_errors.map do |error|
-      <<~HTML
-        <details class="mb-2">
-          <summary class="h6">#{central_time_human(error['time'], format: :long)} - #{error['context']}</summary>
-          <p class="small" style="white-space: pre-wrap; word-break: break-word;">#{error['message']}</p>
-        </details>
-      HTML
-    end
-
-    html = <<~HTML
-      <html>
-      <head>
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-      <link rel="icon" type="image/x-icon" href="/images/paddle.ico">
-      <link rel="icon" type="image/svg+xml" href="/images/paddle.svg">
-      <link rel="apple-touch-icon" href="/images/paddle-180.png">
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-        <meta charset="UTF-8">
-        <title>🏓 JCC Pickleball</title>
-      </head>
-      <body class="p-3">
-      <table class="table table-striped">
-      <thead>
-        <tr>
-          <th scope="col">Date</th>
-          <th scope="col">Time</th>
-          <th scope="col">Court</th>
-          <th scope="col">Checked In?</th>
-          <th scope="col">Cancel</th>
-        </tr>
-        </thead>
-        <tbody>
-        #{html_rows.join("\n")}
-        </tbody>
-      </table>
-      <figcaption class="blockquote-footer pt-3">
-        #{central_time_human(Time.now, format: :long)}
-      </figcaption>
-
-      <h5 class="pt-4">Errors (last #{ERROR_DISPLAY_DAYS} days)</h5>
-      #{if error_sections.empty?
-          '<p class="text-muted small">No errors.</p>'
-        else
-          error_sections.join("\n")
-        end}
-
-      <div class="modal fade" id="cancelModal" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <form method="post" action="cancel.php">
-              <div class="modal-header">
-                <h5 class="modal-title">Cancel booking</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                <input type="hidden" name="apt_id" id="cancelAptId">
-                <input type="text" name="confirm_date" class="form-control" placeholder="secret 8 digits" required>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-danger">Cancel booking</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-      <script>
-        function openCancelModal(btn) {
-          document.getElementById('cancelAptId').value = btn.getAttribute('data-apt-id');
-          new bootstrap.Modal(document.getElementById('cancelModal')).show();
+    History.replace_bookings(
+      bookings.map do |booking|
+        {
+          id: booking.id,
+          start_time: booking.start_time,
+          end_time: booking.end_time,
+          court: booking.court,
+          checked_in: !(booking.checkins.nil? || booking.checkins.empty?)
         }
-      </script>
-      </body>
-      </html>
-    HTML
+      end
+    )
+  end
 
-    File.open('/home/washingrving/mmcrockett.com/jpickle.html', 'w') { |f| f.write(html) }
+  def begin_run(command)
+    History.start_run(command, @user)
+  end
+
+  def finish_run(command, error: nil)
+    failed = error || @failed
+    summary = error ? error.message[0, 500] : @notes&.join('; ')
+    routine = command == 'sync' && !failed && !@checkin_attempted
+
+    History.finish_run(status: failed ? 'error' : 'ok', summary: summary, routine: routine)
   end
 
   def user_id
@@ -249,8 +171,10 @@ class BallButton
   # also carries the account's password hash, FCM push token, email, and
   # home coordinates, so only the token is ever pulled out of it.
   def login
-    response = BallButton.post(
+    response = call(:post,
       LOGIN_URL,
+      context: 'login',
+      redact: true,
       body: {
         username: USERS[@user]['username'],
         password: USERS[@user]['password'],
@@ -283,27 +207,6 @@ class BallButton
     USERS[@user]['token'] = token
   end
 
-  # Appends to a newline-delimited JSON log and prunes anything older than
-  # ERROR_LOG_RETENTION_DAYS so it doesn't grow unbounded across cron runs.
-  def log_error(context, error)
-    entries = read_error_log
-    entries << {'time' => Time.now.iso8601, 'context' => context, 'message' => error.message}
-
-    cutoff = Time.now - (ERROR_LOG_RETENTION_DAYS * 24 * 60 * 60)
-    entries = entries.select {|e| Time.iso8601(e['time']) >= cutoff }
-
-    File.write(ERROR_LOG_PATH, entries.map(&:to_json).join("\n") + "\n")
-  end
-
-  def recent_errors(days: ERROR_DISPLAY_DAYS)
-    cutoff = Time.now - (days * 24 * 60 * 60)
-
-    read_error_log
-      .select {|e| Time.iso8601(e['time']) >= cutoff }
-      .sort_by {|e| e['time'] }
-      .reverse
-  end
-
   def bookings
     url = "#{LIST_URL}/#{user_id}"
 
@@ -316,6 +219,7 @@ class BallButton
 
     @bookings ||= request(:post,
       url,
+      context: 'bookings',
       body: data.to_json,
       headers: user_token_header
     ).parsed_response.dig('payload', 'bookings_history') || []
@@ -340,7 +244,7 @@ class BallButton
   def booking(booking_id)
     url = "#{BOOKING_URL}/#{booking_id}"
 
-    booking = request(:get, url, headers: user_token_header).parsed_response['payload']
+    booking = request(:get, url, context: 'booking', headers: user_token_header).parsed_response['payload']
 
     Struct.new(
       :checkins,
@@ -354,14 +258,21 @@ class BallButton
   def cancel(apt_id, confirm_date: nil)
     if confirm_date
       actual_date = central_time_human(booking(apt_id).start_time, format: :compact_date)
-      return 'not allowed' unless confirm_date == actual_date
+
+      unless confirm_date == actual_date
+        fail_note("cancel #{apt_id}: not allowed")
+        return 'not allowed'
+      end
     end
 
-    BallButton.post(
+    response = call(:post,
       "#{CANCEL_URL}/#{apt_id}",
+      context: 'cancel',
       body: {cancel_for: 'court', apt_id: apt_id.to_s}.to_json,
       headers: user_token_header
     )
+    response.ok? ? note("cancelled #{apt_id}") : fail_note("cancel #{apt_id}: #{response_message(response)}")
+    response
   end
 
   def reserve_today
@@ -410,18 +321,67 @@ class BallButton
       puts "rrequest: #{data.to_json}"
 
       @response = if dry_run
-                    BallButton.get('', headers: user_token_header)
+                    call(:get, '', context: 'reserve', headers: user_token_header)
                   else
-                    BallButton.post(RESERVE_URL, body: data.to_json,
-                                                 headers: user_token_header)
+                    call(:post, RESERVE_URL, context: 'reserve', body: data.to_json,
+                                             headers: user_token_header)
                   end
-      return @response if @response.ok?
+      return note_reservation(start_time, c, dry_run) if @response.ok?
     end
 
+    fail_note("reserve #{start_time.utc.iso8601}: #{response_message(@response)}")
     @response
   end
 
   private
+
+  def note(text)
+    (@notes ||= []) << text
+  end
+
+  def fail_note(text)
+    @failed = true
+    note(text)
+  end
+
+  def note_reservation(start_time, court, dry_run)
+    note("#{'dry run ' if dry_run}reserved #{start_time.utc.iso8601} court #{court}")
+    @response
+  end
+
+  def response_message(response)
+    parsed = response.parsed_response
+    parsed.is_a?(Hash) && parsed['message'] ? parsed['message'] : "status #{response.code}"
+  end
+
+  # Records every API call to History. Login bodies are redacted - they carry
+  # the password going out and credentials coming back.
+  def call(method, url, context:, attempt: 1, redact: false, **options)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    response = error = nil
+
+    begin
+      response = BallButton.send(method, url, **options)
+    rescue => e
+      error = e
+    end
+
+    History.record_request(
+      method: method,
+      url: url,
+      context: context,
+      attempt: attempt,
+      status: response&.code,
+      duration_ms: ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round,
+      request_body: redact ? nil : options[:body],
+      response_body: redact ? nil : response&.body,
+      error: error&.message
+    )
+
+    raise error if error
+
+    response
+  end
 
   # Retries idempotent GET/POST calls when the API returns a transient
   # failure (e.g. a 504 gateway timeout, which comes back as an HTML body
@@ -429,12 +389,12 @@ class BallButton
   # refreshes the token once on a 401 and retries with it - logins appear
   # to invalidate sibling sessions, so this only fires when the stored
   # token has actually gone stale, not on every run.
-  def request(method, url, **options)
+  def request(method, url, context:, **options)
     attempt = 1
     token_refreshed = false
 
     loop do
-      response = BallButton.send(method, url, **options)
+      response = call(method, url, context: context, attempt: attempt, **options)
       return response if response.ok? && response.parsed_response.is_a?(Hash)
 
       if !token_refreshed && response.code == 401 && options[:headers]
@@ -453,35 +413,45 @@ class BallButton
       attempt += 1
     end
   end
-
-  def read_error_log
-    return [] unless File.exist?(ERROR_LOG_PATH)
-
-    File.readlines(ERROR_LOG_PATH).reject(&:empty?).map {|line| JSON.parse(line) }
-  end
 end
 
+command = ARGV[0] || 'reserve'
 @bb = BallButton.new(ENV['BB_USER'])
 
-if 'generate-schedule' == ARGV[0]
-  puts @bb.generate_schedule
-elsif 'reserve-today' == ARGV[0]
-  responses = @bb.reserve_today.map { |r| r.parsed_response }
-  puts "responses: #{responses}"
-elsif 'cancel' == ARGV[0]
-  result = @bb.cancel(ARGV[1], confirm_date: ARGV[2])
-  puts "cancel response: #{result.respond_to?(:parsed_response) ? result.parsed_response : result}"
-  puts @bb.generate_schedule
-elsif 'login' == ARGV[0]
-  @bb.refresh_token!
-  puts 'login: token refreshed and saved'
-else
-  response = @bb.reserve(
-    ENV['RESERVE_START'],
-    court: ENV['COURT'],
-    dry_run: 'true' == ENV['DRY_RUN'],
-    minutes: ENV['D']
-  ).parsed_response
-
-  puts "response: #{response}"
+if 'record-failure' == command
+  History.start_run(ARGV[1], ENV['BB_USER'])
+  History.finish_run(status: 'error', summary: "exit #{ARGV[2]} - see cron log")
+  exit
 end
+
+@bb.begin_run(command)
+
+begin
+  if 'sync' == command
+    @bb.sync
+  elsif 'reserve-today' == command
+    responses = @bb.reserve_today.map { |r| r.parsed_response }
+    puts "responses: #{responses}"
+  elsif 'cancel' == command
+    result = @bb.cancel(ARGV[1], confirm_date: ARGV[2])
+    puts "cancel response: #{result.respond_to?(:parsed_response) ? result.parsed_response : result}"
+    @bb.sync
+  elsif 'login' == command
+    @bb.refresh_token!
+    puts 'login: token refreshed and saved'
+  else
+    response = @bb.reserve(
+      ENV['RESERVE_START'],
+      court: ENV['COURT'],
+      dry_run: 'true' == ENV['DRY_RUN'],
+      minutes: ENV['D']
+    ).parsed_response
+
+    puts "response: #{response}"
+  end
+rescue => e
+  @bb.finish_run(command, error: e)
+  raise
+end
+
+@bb.finish_run(command)
