@@ -24,6 +24,8 @@ class BallButton
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
   CHECKIN_WINDOW_BEFORE_MIN = 60
   CHECKIN_WINDOW_AFTER_MIN = 150
+  BOOKING_OPEN_HOUR_CENTRAL = 6
+  BOOKING_OPEN_MAX_WAIT_SEC = 600
   REQUEST_MAX_ATTEMPTS = 3
   REQUEST_BACKOFF_BASE_SEC = 2
 
@@ -212,22 +214,8 @@ class BallButton
   end
 
   def bookings
-    url = "#{LIST_URL}/#{user_id}"
-
-    data = {
-      startDate: central_time_at.to_datetime.iso8601,
-      endDate: central_time_at(days_offset: 7, hr: 23).to_datetime.iso8601,
-      type: '0',
-      is_coach: false
-    }
-
     @bookings ||= begin
-      list = request(:post,
-        url,
-        context: 'bookings',
-        body: data.to_json,
-        headers: user_token_header
-      ).parsed_response.dig('payload', 'bookings_history') || []
+      list = fetch_booking_list
 
       list.map do |appt|
         Struct.new(
@@ -284,6 +272,11 @@ class BallButton
   def reserve_today
     weekday = central_time_at.strftime('%A').downcase
     entries = SCHEDULE[weekday] || []
+
+    unless entries.empty?
+      warm_token
+      wait_for_booking_open
+    end
 
     entries.map do |entry|
       reserve(
@@ -343,6 +336,36 @@ class BallButton
   end
 
   private
+
+  def fetch_booking_list(context: 'bookings')
+    data = {
+      startDate: central_time_at.to_datetime.iso8601,
+      endDate: central_time_at(days_offset: 7, hr: 23).to_datetime.iso8601,
+      type: '0',
+      is_coach: false
+    }
+
+    request(:post,
+      "#{LIST_URL}/#{user_id}",
+      context: context,
+      body: data.to_json,
+      headers: user_token_header
+    ).parsed_response.dig('payload', 'bookings_history') || []
+  end
+
+  # Spends any 401 token refresh before the booking window opens.
+  def warm_token
+    fetch_booking_list(context: 'warmup')
+  end
+
+  def wait_for_booking_open
+    open_at = central_time_at(hr: BOOKING_OPEN_HOUR_CENTRAL)
+    remaining = open_at - Time.now
+    return unless remaining.positive? && remaining <= BOOKING_OPEN_MAX_WAIT_SEC
+
+    puts "reserve: waiting #{remaining.round(2)}s until bookings open at #{open_at}"
+    sleep(remaining)
+  end
 
   def note(text)
     (@notes ||= []) << text
