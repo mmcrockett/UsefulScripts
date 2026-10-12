@@ -4,7 +4,7 @@
 # so crontab stays a one-line-per-job list instead of repeating
 # this setlock/redirect/printf boilerplate on every line.
 #
-# Usage: ball_button_cron.sh {dryrun|schedule|reserve|reserve2}
+# Usage: ball_button_cron.sh {dryrun|schedule|reserve}
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 BB="$DIR/ball_button.sh"
@@ -26,13 +26,8 @@ case "$1" in
     LOG="$DIR/ball_button.cron.log"
     SUBCOMMAND="reserve-today"
     ;;
-  reserve2)
-    LOCK=/tmp/cronlock.817513.396514
-    LOG="$DIR/ball_button.cron.log"
-    SUBCOMMAND="reserve-today"
-    ;;
   *)
-    echo "usage: $0 {dryrun|schedule|reserve|reserve2}" >&2
+    echo "usage: $0 {dryrun|schedule|reserve}" >&2
     exit 64
     ;;
 esac

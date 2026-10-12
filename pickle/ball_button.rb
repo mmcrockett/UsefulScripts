@@ -26,6 +26,8 @@ class BallButton
   CHECKIN_WINDOW_AFTER_MIN = 150
   BOOKING_OPEN_HOUR_CENTRAL = 6
   BOOKING_OPEN_MAX_WAIT_SEC = 600
+  NOT_ELIGIBLE_RETRY_SEC = 20
+  NOT_ELIGIBLE_RETRY_INTERVAL_SEC = 0.5
   REQUEST_MAX_ATTEMPTS = 3
   REQUEST_BACKOFF_BASE_SEC = 2
 
@@ -321,13 +323,23 @@ class BallButton
       puts "rattempt: #{Time.now}"
       puts "rrequest: #{data.to_json}"
 
-      @response = if dry_run
-                    call(:get, '', context: 'reserve', headers: user_token_header)
-                  else
-                    call(:post, RESERVE_URL, context: 'reserve', body: data.to_json,
-                                             headers: user_token_header)
-                  end
-      detail("#{court_name(c)}: #{response_message(@response)}")
+      retries = 0
+      deadline = Time.now + NOT_ELIGIBLE_RETRY_SEC
+
+      loop do
+        @response = if dry_run
+                      call(:get, '', context: 'reserve', headers: user_token_header)
+                    else
+                      call(:post, RESERVE_URL, context: 'reserve', body: data.to_json,
+                                               headers: user_token_header)
+                    end
+        break unless not_eligible?(@response) && Time.now < deadline
+
+        retries += 1
+        sleep(NOT_ELIGIBLE_RETRY_INTERVAL_SEC)
+      end
+
+      detail("#{court_name(c)}: #{response_message(@response)}#{" (retried #{retries}x)" if retries.positive?}")
       return note_reservation(slot, dry_run) if @response.ok?
     end
 
@@ -394,6 +406,12 @@ class BallButton
     return from.strftime('%a %b %-d %-l:%M%P') unless end_time
 
     "#{from.strftime('%a %b %-d %-l:%M')}-#{CHICAGO_TZ.to_local(end_time).strftime('%-l:%M%P')}"
+  end
+
+  # The booking window not being open yet comes back as an eligibility error
+  # rather than a distinct status, so it is matched on the message.
+  def not_eligible?(response)
+    response_message(response).match?(/not eligible/i)
   end
 
   def response_message(response)
