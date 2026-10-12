@@ -24,6 +24,10 @@ class BallButton
   CHICAGO_TZ = TZInfo::Timezone.get('America/Chicago')
   CHECKIN_WINDOW_BEFORE_MIN = 60
   CHECKIN_WINDOW_AFTER_MIN = 150
+  BOOKING_OPEN_HOUR_CENTRAL = 6
+  BOOKING_OPEN_MAX_WAIT_SEC = 600
+  NOT_ELIGIBLE_RETRY_SEC = 20
+  NOT_ELIGIBLE_RETRY_INTERVAL_SEC = 0.5
   REQUEST_MAX_ATTEMPTS = 3
   REQUEST_BACKOFF_BASE_SEC = 2
 
@@ -100,6 +104,7 @@ class BallButton
 
     location_response = checkin_location
     checkin_member(next_check_in.id) if location_response.ok?
+    @bookings = nil
     note("checked in #{slot_label(Time.parse(next_check_in.start_time))}") if location_response.ok?
     location_response
   end
@@ -211,36 +216,24 @@ class BallButton
   end
 
   def bookings
-    url = "#{LIST_URL}/#{user_id}"
+    @bookings ||= begin
+      list = fetch_booking_list
 
-    data = {
-      startDate: central_time_at.to_datetime.iso8601,
-      endDate: central_time_at(days_offset: 7, hr: 23).to_datetime.iso8601,
-      type: '0',
-      is_coach: false
-    }
-
-    @bookings ||= request(:post,
-      url,
-      context: 'bookings',
-      body: data.to_json,
-      headers: user_token_header
-    ).parsed_response.dig('payload', 'bookings_history') || []
-
-    @bookings.map do |appt|
-      Struct.new(
-        :id,
-        :court,
-        :checkins,
-        :start_time,
-        :end_time
-      ).new(
-        appt['id'],
-        appt['court_names'],
-        booking(appt['id']).checkins,
-        appt['start_time'],
-        appt['end_time']
-      )
+      list.map do |appt|
+        Struct.new(
+          :id,
+          :court,
+          :checkins,
+          :start_time,
+          :end_time
+        ).new(
+          appt['id'],
+          appt['court_names'],
+          booking(appt['id']).checkins,
+          appt['start_time'],
+          appt['end_time']
+        )
+      end
     end
   end
 
@@ -281,6 +274,11 @@ class BallButton
   def reserve_today
     weekday = central_time_at.strftime('%A').downcase
     entries = SCHEDULE[weekday] || []
+
+    unless entries.empty?
+      warm_token
+      wait_for_booking_open
+    end
 
     entries.map do |entry|
       reserve(
@@ -325,13 +323,23 @@ class BallButton
       puts "rattempt: #{Time.now}"
       puts "rrequest: #{data.to_json}"
 
-      @response = if dry_run
-                    call(:get, '', context: 'reserve', headers: user_token_header)
-                  else
-                    call(:post, RESERVE_URL, context: 'reserve', body: data.to_json,
-                                             headers: user_token_header)
-                  end
-      detail("#{court_name(c)}: #{response_message(@response)}")
+      retries = 0
+      deadline = Time.now + NOT_ELIGIBLE_RETRY_SEC
+
+      loop do
+        @response = if dry_run
+                      call(:get, '', context: 'reserve', headers: user_token_header)
+                    else
+                      call(:post, RESERVE_URL, context: 'reserve', body: data.to_json,
+                                               headers: user_token_header)
+                    end
+        break unless not_eligible?(@response) && Time.now < deadline
+
+        retries += 1
+        sleep(NOT_ELIGIBLE_RETRY_INTERVAL_SEC)
+      end
+
+      detail("#{court_name(c)}: #{response_message(@response)}#{" (retried #{retries}x)" if retries.positive?}")
       return note_reservation(slot, dry_run) if @response.ok?
     end
 
@@ -340,6 +348,36 @@ class BallButton
   end
 
   private
+
+  def fetch_booking_list(context: 'bookings')
+    data = {
+      startDate: central_time_at.to_datetime.iso8601,
+      endDate: central_time_at(days_offset: 7, hr: 23).to_datetime.iso8601,
+      type: '0',
+      is_coach: false
+    }
+
+    request(:post,
+      "#{LIST_URL}/#{user_id}",
+      context: context,
+      body: data.to_json,
+      headers: user_token_header
+    ).parsed_response.dig('payload', 'bookings_history') || []
+  end
+
+  # Spends any 401 token refresh before the booking window opens.
+  def warm_token
+    fetch_booking_list(context: 'warmup')
+  end
+
+  def wait_for_booking_open
+    open_at = central_time_at(hr: BOOKING_OPEN_HOUR_CENTRAL)
+    remaining = open_at - Time.now
+    return unless remaining.positive? && remaining <= BOOKING_OPEN_MAX_WAIT_SEC
+
+    puts "reserve: waiting #{remaining.round(2)}s until bookings open at #{open_at}"
+    sleep(remaining)
+  end
 
   def note(text)
     (@notes ||= []) << text
@@ -368,6 +406,12 @@ class BallButton
     return from.strftime('%a %b %-d %-l:%M%P') unless end_time
 
     "#{from.strftime('%a %b %-d %-l:%M')}-#{CHICAGO_TZ.to_local(end_time).strftime('%-l:%M%P')}"
+  end
+
+  # The booking window not being open yet comes back as an eligibility error
+  # rather than a distinct status, so it is matched on the message.
+  def not_eligible?(response)
+    response_message(response).match?(/not eligible/i)
   end
 
   def response_message(response)
