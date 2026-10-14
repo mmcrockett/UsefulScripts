@@ -86,10 +86,12 @@ claude_reserved_themes=(
   "#2E5A8C #EAF2FA light-blue"
 )
 
-declare -A claude_command_themes=(
-  [/wi-pr-list-awaiting-review]=light-red
-  [/wi-pr-list-mine]=light-blue
-)
+function claude-command-theme {
+  case "$1" in
+    /wi-pr-list-awaiting-review) echo light-red ;;
+    /wi-pr-list-mine) echo light-blue ;;
+  esac
+}
 
 function claude-theme-key {
   local common
@@ -101,10 +103,11 @@ function claude-theme-key {
 }
 
 function claude-theme-slug {
-  local arg
+  local arg slug
   for arg in "$@"; do
-    if [[ -n "${claude_command_themes[${arg}]:-}" ]]; then
-      echo "${claude_command_themes[${arg}]}"
+    slug="$(claude-command-theme "${arg}")"
+    if [[ -n "${slug}" ]]; then
+      echo "${slug}"
       return
     fi
   done
