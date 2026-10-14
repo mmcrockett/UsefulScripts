@@ -76,18 +76,50 @@ claude_themes=(
   "#5A2A6E #F0F0F0 light-violet"    # dark
   "#1F5A4E #F0F0F0 light-teal"      # dark
   "#6E5410 #F5F0E0 light-amber"     # dark
-  "#6E2020 #F5E8E8 light-red"       # dark
-  "#2E5A8C #EAF2FA light-blue"      # dark
   "#5A6E20 #F2F5E0 light-olive"     # dark
   "#7A3A5A #FAEAF0 light-mauve"     # dark
   "- - dark"                       # built-in preset, no OSC recolor
 )
 
+claude_reserved_themes=(
+  "#6E2020 #F5E8E8 light-red"
+  "#2E5A8C #EAF2FA light-blue"
+)
+
+declare -A claude_command_themes=(
+  [/wi-pr-list-awaiting-review]=light-red
+  [/wi-pr-list-mine]=light-blue
+)
+
+function claude-theme-key {
+  local common
+  if common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; then
+    basename "$(dirname "${common}")"
+  else
+    echo "${PWD}"
+  fi
+}
+
+function claude-theme-slug {
+  local arg
+  for arg in "$@"; do
+    if [[ -n "${claude_command_themes[${arg}]:-}" ]]; then
+      echo "${claude_command_themes[${arg}]}"
+      return
+    fi
+  done
+
+  local idx=$(( $(cksum <<< "$(claude-theme-key)" | cut -d ' ' -f 1) % ${#claude_themes[@]} ))
+  echo "${claude_themes[$idx]##* }"
+}
+
 function claude-bg {
-  local dir="${1:-$PWD}"
-  local idx=$(( $(cksum <<< "$dir" | cut -d ' ' -f 1) % ${#claude_themes[@]} ))
-  local bg fg slug
-  read -r bg fg slug <<< "${claude_themes[$idx]}"
+  local want="${1:-$(claude-theme-slug)}"
+  local bg fg slug row
+  for row in "${claude_themes[@]}" "${claude_reserved_themes[@]}"; do
+    read -r bg fg slug <<< "${row}"
+    [[ "${slug}" == "${want}" ]] && break
+  done
 
   if [[ "$slug" == "dark" ]]; then
     printf '\e]110\a\e]111\a'
@@ -106,7 +138,7 @@ function claude {
 
   local last_dir="${PWD##*/}"
 
-  claude-bg
+  claude-bg "$(claude-theme-slug "$@")"
 
   local claude_theme="{\"theme\":\"${CLAUDE_THEME_VALUE}\"}"
 
