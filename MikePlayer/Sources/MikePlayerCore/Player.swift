@@ -1,6 +1,5 @@
 import AVFoundation
 import Foundation
-import MediaPlayer
 import Observation
 
 @MainActor @Observable
@@ -77,7 +76,6 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
             MainActor.assumeIsolated { self?.tick() }
         }
 
-        setUpRemoteCommands()
         play(at: 0)
     }
 
@@ -94,8 +92,6 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
         default:
             return
         }
-
-        publishNowPlaying()
     }
 
     public func next() {
@@ -132,7 +128,6 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
             index = min(newIndex, max(playlist.size - 1, 0))
             elapsed = 0
             state = .finished
-            publishNowPlaying()
             return
         }
 
@@ -146,7 +141,6 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
             player.play()
             audio = player
             state = .playing
-            publishNowPlaying()
         } catch {
             self.error = "\(playlist.songs[newIndex].filename): \(error.localizedDescription)"
             play(at: newIndex + 1)
@@ -162,41 +156,6 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
             togglePause()
             timerStart = nil
             minutes = 0
-        }
-    }
-
-    private func publishNowPlaying() {
-        guard let song, state != .finished else {
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-            return
-        }
-
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = [
-            MPMediaItemPropertyTitle: song.title.isEmpty ? song.info : song.title,
-            MPMediaItemPropertyArtist: song.artist,
-            MPMediaItemPropertyPlaybackDuration: song.length,
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsed,
-            MPNowPlayingInfoPropertyPlaybackRate: state == .playing ? 1.0 : 0.0,
-        ]
-        MPNowPlayingInfoCenter.default().playbackState = state == .playing ? .playing : .paused
-    }
-
-    private func setUpRemoteCommands() {
-        let center = MPRemoteCommandCenter.shared()
-        let actions: [(MPRemoteCommand, () -> Void)] = [
-            (center.togglePlayPauseCommand, { self.togglePause() }),
-            (center.playCommand, { if self.isPaused { self.togglePause() } }),
-            (center.pauseCommand, { if self.state == .playing { self.togglePause() } }),
-            (center.nextTrackCommand, { self.next() }),
-            (center.previousTrackCommand, { self.previous() }),
-        ]
-
-        for (command, action) in actions {
-            command.isEnabled = true
-            command.addTarget { _ in
-                Task { @MainActor in action() }
-                return .success
-            }
         }
     }
 }
