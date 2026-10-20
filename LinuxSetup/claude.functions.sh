@@ -176,8 +176,11 @@ function claude-theme-slug {
     fi
   done
 
-  key="$(claude-theme-key)" || { echo unknown; return; }
-  claude-theme-mapped "${key}" || claude-theme-pick "${key}"
+  if key="$(claude-theme-key)"; then
+    claude-theme-mapped "${key}" || claude-theme-pick "${key}"
+  else
+    claude-theme-mapped "${PWD}" || echo dark
+  fi
 }
 
 function claude-bg {
