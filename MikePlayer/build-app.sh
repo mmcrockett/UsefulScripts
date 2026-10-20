@@ -7,7 +7,8 @@ swift build -c release
 
 APP=build/MikePlayer.app
 rm -rf "${APP}"
-mkdir -p "${APP}/Contents/MacOS"
+mkdir -p "${APP}/Contents/MacOS" "${APP}/Contents/Resources"
+cp Resources/AppIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
 cp "$(swift build -c release --show-bin-path)/MikePlayer" "${APP}/Contents/MacOS/MikePlayer"
 cp Resources/Info.plist "${APP}/Contents/Info.plist"
 codesign -s - --force "${APP}"
