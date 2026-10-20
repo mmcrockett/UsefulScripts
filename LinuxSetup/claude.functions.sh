@@ -86,6 +86,10 @@ claude_reserved_themes=(
   "#2E5A8C #EAF2FA light-blue"
 )
 
+claude_unknown_theme="#3A3A3A #D8D8D8 unknown"
+
+claude_theme_map="${HOME}/.claude/repo-themes"
+
 function claude-command-theme {
   case "$1" in
     /wi-pr-list-awaiting-review) echo light-red ;;
@@ -95,15 +99,75 @@ function claude-command-theme {
 
 function claude-theme-key {
   local common
-  if common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; then
-    basename "$(dirname "${common}")"
+  common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 1
+  basename "$(dirname "${common}")"
+}
+
+function claude-theme-mapped {
+  local slug key
+  [[ -r "${claude_theme_map}" ]] || return 1
+  while read -r slug key; do
+    if [[ "${key}" == "$1" ]]; then
+      echo "${slug}"
+      return
+    fi
+  done < "${claude_theme_map}"
+  return 1
+}
+
+function claude-theme-pick {
+  local key="$1"
+  if ! [[ -t 0 && -t 2 ]]; then
+    echo unknown
+    return
+  fi
+
+  local used=" " slug row bg fg r g b fr fgg fb
+  if [[ -r "${claude_theme_map}" ]]; then
+    while read -r slug _; do
+      used+="${slug} "
+    done < "${claude_theme_map}"
+  fi
+
+  local candidates=()
+  for row in "${claude_themes[@]}"; do
+    [[ "${used}" == *" ${row##* } "* ]] || candidates+=("${row}")
+  done
+  (( ${#candidates[@]} )) || candidates=("${claude_themes[@]}")
+
+  printf 'No theme for %s. Pick one (Enter = unknown):\n' "${key}" >&2
+  local i=1
+  for row in "${candidates[@]}"; do
+    read -r bg fg slug <<< "${row}"
+    if [[ "${slug}" == "dark" ]]; then
+      printf '%3d) %s\n' "${i}" "${slug}" >&2
+    else
+      printf -v r '%d' "0x${bg:1:2}"
+      printf -v g '%d' "0x${bg:3:2}"
+      printf -v b '%d' "0x${bg:5:2}"
+      printf -v fr '%d' "0x${fg:1:2}"
+      printf -v fgg '%d' "0x${fg:3:2}"
+      printf -v fb '%d' "0x${fg:5:2}"
+      printf '%3d) \e[48;2;%d;%d;%dm\e[38;2;%d;%d;%dm %-18s \e[0m\n' \
+        "${i}" "${r}" "${g}" "${b}" "${fr}" "${fgg}" "${fb}" "${slug}" >&2
+    fi
+    i=$(( i + 1 ))
+  done
+
+  local choice
+  printf '> ' >&2
+  read -r choice < /dev/tty
+  if [[ "${choice}" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#candidates[@]} )); then
+    slug="${candidates[$(( choice - 1 ))]##* }"
+    printf '%s %s\n' "${slug}" "${key}" >> "${claude_theme_map}"
+    echo "${slug}"
   else
-    echo "${PWD}"
+    echo unknown
   fi
 }
 
 function claude-theme-slug {
-  local arg slug
+  local arg slug key
   for arg in "$@"; do
     slug="$(claude-command-theme "${arg}")"
     if [[ -n "${slug}" ]]; then
@@ -112,17 +176,21 @@ function claude-theme-slug {
     fi
   done
 
-  local idx=$(( $(cksum <<< "$(claude-theme-key)" | cut -d ' ' -f 1) % ${#claude_themes[@]} ))
-  echo "${claude_themes[$idx]##* }"
+  key="$(claude-theme-key)" || { echo unknown; return; }
+  claude-theme-mapped "${key}" || claude-theme-pick "${key}"
 }
 
 function claude-bg {
   local want="${1:-$(claude-theme-slug)}"
-  local bg fg slug row
-  for row in "${claude_themes[@]}" "${claude_reserved_themes[@]}"; do
+  local bg fg slug row found=0
+  for row in "${claude_themes[@]}" "${claude_reserved_themes[@]}" "${claude_unknown_theme}"; do
     read -r bg fg slug <<< "${row}"
-    [[ "${slug}" == "${want}" ]] && break
+    if [[ "${slug}" == "${want}" ]]; then
+      found=1
+      break
+    fi
   done
+  (( found )) || read -r bg fg slug <<< "${claude_unknown_theme}"
 
   if [[ "$slug" == "dark" ]]; then
     printf '\e]110\a\e]111\a'
