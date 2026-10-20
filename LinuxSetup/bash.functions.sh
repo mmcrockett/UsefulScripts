@@ -646,7 +646,7 @@ function mikeplayer() {
   local _VOLUME=0.5
 
   if [[ "$(uname)" == "Darwin" && -d "${HOME}/Applications/MikePlayer.app" ]]; then
-    open -a "${HOME}/Applications/MikePlayer.app" --args --volume ${_VOLUME} --directory ${_DIRECTORY} "${@}"
+    open -a "${HOME}/Applications/MikePlayer.app" --args --shuffle --volume ${_VOLUME} --directory ${_DIRECTORY} "${@}"
   else
     MikePlayer.rb --fullscreen --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
   fi
