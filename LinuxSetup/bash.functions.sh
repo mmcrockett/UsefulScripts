@@ -644,16 +644,12 @@ function isMac {
 function mikeplayer() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-music/"
   local _VOLUME=0.5
-  #(
-    #trap "printf '\033]111\007'" EXIT
-    #printf '\033]11;rgb:80/00/80\007'
+
+  if [[ "$(uname)" == "Darwin" && -d "${HOME}/Applications/MikePlayer.app" ]]; then
+    open -a "${HOME}/Applications/MikePlayer.app" --args --volume ${_VOLUME} --directory ${_DIRECTORY} "${@}"
+  else
     MikePlayer.rb --fullscreen --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
-  #)
-}
-function mikeplayer-app() {
-  local _DIRECTORY="${HOME}/DreamObjects/b137124-music/"
-  local _VOLUME=0.5
-  open -a MikePlayer --args --volume ${_VOLUME} --directory ${_DIRECTORY} "${@}"
+  fi
 }
 function processPhotos() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-pictures/"
