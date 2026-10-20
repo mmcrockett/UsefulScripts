@@ -650,6 +650,11 @@ function mikeplayer() {
     MikePlayer.rb --fullscreen --volume ${_VOLUME} --directory ${_DIRECTORY} ${@}
   #)
 }
+function mikeplayer-app() {
+  local _DIRECTORY="${HOME}/DreamObjects/b137124-music/"
+  local _VOLUME=0.5
+  open -a MikePlayer --args --volume ${_VOLUME} --directory ${_DIRECTORY} "${@}"
+}
 function processPhotos() {
   local _DIRECTORY="${HOME}/DreamObjects/b137124-pictures/"
   ruby ${SETUP_DIR}/PictureProcessor.rb --outdir ${_DIRECTORY} ${@} && dhbackup
