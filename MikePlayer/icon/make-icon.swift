@@ -1,4 +1,4 @@
-// Draws the app icon (an owl wearing headphones) and writes it as a PNG.
+// Draws the app icon (an owl face wearing headphones) and writes it as a PNG.
 // Usage: swift make-icon.swift <out.png>
 import CoreGraphics
 import Foundation
@@ -47,57 +47,52 @@ ctx.drawLinearGradient(
 
 let brown = color(150, 98, 58)
 let darkBrown = color(104, 66, 38)
-let belly = color(232, 200, 150)
+let cream = color(232, 200, 150)
+let white = color(255, 255, 255)
+let ink = color(24, 20, 20)
+let orange = color(244, 164, 48)
 let cyan = color(64, 214, 232)
 let cyanDark = color(20, 120, 140)
 
-// Ear tufts, then body and head.
-fillPolygon([(270, 640), (300, 840), (430, 730)], darkBrown)
-fillPolygon([(754, 640), (724, 840), (594, 730)], darkBrown)
-fillEllipse(512, 430, 300, 330, brown)
+let centerY: CGFloat = 480
 
-// Belly with feather scallops.
-fillEllipse(512, 300, 190, 215, belly)
-for (i, row) in [(1, 340), (2, 270), (3, 200)] {
-    for dx in stride(from: CGFloat(-90), through: 90, by: 90) {
-        let offset: CGFloat = i % 2 == 0 ? 45 : 0
-        ctx.setStrokeColor(color(190, 150, 100))
-        ctx.setLineWidth(10)
-        ctx.addArc(
-            center: CGPoint(x: 512 + dx + offset - (i % 2 == 0 ? 45 : 0), y: CGFloat(row)), radius: 38,
-            startAngle: .pi, endAngle: 2 * .pi, clockwise: false)
-        ctx.strokePath()
-    }
+// Ear tufts, then the head.
+fillPolygon([(270, centerY + 130), (310, centerY + 360), (450, centerY + 230)], darkBrown)
+fillPolygon([(754, centerY + 130), (714, centerY + 360), (574, centerY + 230)], darkBrown)
+fillEllipse(512, centerY, 295, 300, brown)
+
+// Forehead feather ticks.
+ctx.setStrokeColor(darkBrown)
+ctx.setLineWidth(14)
+ctx.setLineCap(.round)
+for dx in [CGFloat(-60), 0, 60] {
+    ctx.move(to: CGPoint(x: 512 + dx - 18, y: centerY + 215))
+    ctx.addLine(to: CGPoint(x: 512 + dx, y: centerY + 185))
+    ctx.addLine(to: CGPoint(x: 512 + dx + 18, y: centerY + 215))
+    ctx.strokePath()
 }
 
-// Wings.
-fillEllipse(262, 330, 70, 170, darkBrown)
-fillEllipse(762, 330, 70, 170, darkBrown)
-
 // Facial discs and eyes.
-fillEllipse(400, 560, 125, 125, belly)
-fillEllipse(624, 560, 125, 125, belly)
-fillEllipse(400, 560, 92, 92, color(255, 255, 255))
-fillEllipse(624, 560, 92, 92, color(255, 255, 255))
-fillEllipse(408, 556, 52, 52, color(24, 20, 20))
-fillEllipse(616, 556, 52, 52, color(24, 20, 20))
-fillEllipse(426, 576, 17, 17, color(255, 255, 255))
-fillEllipse(634, 576, 17, 17, color(255, 255, 255))
+fillEllipse(392, centerY + 20, 140, 140, cream)
+fillEllipse(632, centerY + 20, 140, 140, cream)
+fillEllipse(392, centerY + 20, 108, 108, white)
+fillEllipse(632, centerY + 20, 108, 108, white)
+fillEllipse(402, centerY + 14, 62, 62, ink)
+fillEllipse(622, centerY + 14, 62, 62, ink)
+fillEllipse(424, centerY + 40, 20, 20, white)
+fillEllipse(644, centerY + 40, 20, 20, white)
 
-// Beak and feet.
-fillPolygon([(480, 500), (544, 500), (512, 420)], color(244, 164, 48))
-fillEllipse(440, 130, 46, 26, color(244, 164, 48))
-fillEllipse(584, 130, 46, 26, color(244, 164, 48))
+// Beak.
+fillPolygon([(474, centerY - 30), (550, centerY - 30), (512, centerY - 130)], orange)
 
 // Headphones: band over the head, cups on the sides.
 ctx.setStrokeColor(cyan)
 ctx.setLineWidth(46)
-ctx.setLineCap(.round)
-ctx.addArc(center: CGPoint(x: 512, y: 540), radius: 330, startAngle: 0, endAngle: .pi, clockwise: false)
+ctx.addArc(center: CGPoint(x: 512, y: centerY), radius: 322, startAngle: 0, endAngle: .pi, clockwise: false)
 ctx.strokePath()
-for x in [CGFloat(182), 842] {
-    fillRoundedRect(CGRect(x: x - 58, y: 410, width: 116, height: 260), 52, cyan)
-    fillRoundedRect(CGRect(x: x - 30, y: 450, width: 60, height: 180), 28, cyanDark)
+for x in [CGFloat(190), 834] {
+    fillRoundedRect(CGRect(x: x - 58, y: centerY - 130, width: 116, height: 260), 52, cyan)
+    fillRoundedRect(CGRect(x: x - 30, y: centerY - 90, width: 60, height: 180), 28, cyanDark)
 }
 ctx.restoreGState()
 
