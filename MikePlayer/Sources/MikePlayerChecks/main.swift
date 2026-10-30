@@ -74,6 +74,17 @@ let found = Playlist(path: findDir + "/p.mpl")
 await found.findSong("cats", directory: findDir)
 check(found.songs.map(\.filename), [findDir + "/Cats-Song.mp3"], "findSong case-insensitive, audio only")
 
+let jumpList = Playlist(path: "/tmp/jump.mpl")
+jumpList.append(Song(filename: "/m/1.mp3", artist: "American Cat", title: "Against the World"))
+jumpList.append(Song(filename: "/m/2.mp3", artist: "Dogs", title: "Bark"))
+jumpList.append(Song(filename: "/m/3.mp3", artist: "The Beats", title: "Catman Rises"))
+jumpList.append(Song(filename: "/m/Catamaran Sailing.mp3"))
+check(jumpList.matches("cat"), [0, 2, 3], "matches case-insensitive in playlist order, filename fallback")
+check(jumpList.matches("CATMAN"), [2], "matches uppercase query")
+check(jumpList.matches("cat", limit: 2), [0, 2], "matches honors limit")
+check(jumpList.matches(""), [], "empty query matches nothing")
+check(jumpList.matches("zzz"), [], "no match")
+
 // Settings
 let parsed = Settings(
     arguments: ["-s", "--volume", "0.5", "-d", "/music", "-t", "30", "cats", "--fullscreen", "-psn_0_1"],
