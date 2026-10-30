@@ -17,6 +17,7 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
     public private(set) var minutes: Int
     public private(set) var timerStart: Date?
     public private(set) var error: String?
+    public var jumpQuery: String?
 
     @ObservationIgnored private var audio: AVAudioPlayer?
     @ObservationIgnored private var ticker: Timer?
@@ -104,6 +105,12 @@ public final class Player: NSObject, AVAudioPlayerDelegate {
         guard state == .playing || state == .paused else { return }
 
         play(at: elapsed < Self.restartThreshold ? max(index - 1, 0) : index)
+    }
+
+    public func jump(to newIndex: Int) {
+        guard state != .loading, playlist.songs.indices.contains(newIndex) else { return }
+
+        play(at: newIndex)
     }
 
     public func restartTimer() {

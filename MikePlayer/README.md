@@ -1,7 +1,7 @@
 # MikePlayer
 
 Native macOS (SwiftUI) port of the `mikeplayer` Ruby console player. Same look, same keys
-(`c` pause/play, `v` next, `z` previous, `t` set timer then digits, `q` quit), same
+(`c` pause/play, `v` next, `z` previous, `j` jump to a track by name (type to filter, Enter or 1-9 to pick, Esc cancels), `t` set timer then digits, `q` quit), same
 `~/.mikeplayer/*.mpl` playlists and flags. Adds a Dock icon.
 
 Needs only the Command Line Tools (no Xcode).

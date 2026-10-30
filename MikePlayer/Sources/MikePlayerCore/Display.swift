@@ -3,7 +3,7 @@ import Foundation
 public enum Display {
     public static let version = "2.0.0"
     public static let progressWidth = 40
-    public static let hint = "c: pause/play   v: next   z: previous   t: set timer   q: quit"
+    public static let hint = "c: pause/play   v: next   z: previous   j: jump   t: set timer   q: quit"
 
     public static func progressBar(elapsed: Double, length: Double, width: Int = progressWidth) -> String {
         let pct = length > 0 ? min(max(elapsed / length, 0), 1) : 0

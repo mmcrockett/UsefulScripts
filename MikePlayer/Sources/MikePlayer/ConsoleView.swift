@@ -64,6 +64,11 @@ struct ConsoleView: View {
             }
             blank
             line(Text(Display.hint).foregroundStyle(Self.dim))
+
+            if let query = player.jumpQuery {
+                blank
+                jumpView(query)
+            }
         }
 
         if let error = player.error {
@@ -75,10 +80,60 @@ struct ConsoleView: View {
 
     private func line(_ text: Text) -> some View { text }
 
+    @ViewBuilder private func jumpView(_ query: String) -> some View {
+        let hits = player.playlist.matches(query)
+
+        Text("Jump: \(query)_").foregroundStyle(.yellow)
+
+        ForEach(Array(hits.enumerated()), id: \.offset) { n, i in
+            HStack(spacing: 0) {
+                Text("[\(n + 1)] ").foregroundStyle(.yellow)
+                Text(player.playlist.songs[i].info).foregroundStyle(.cyan)
+                Text(" \(player.playlist.position(i))").foregroundStyle(Self.dim)
+            }
+        }
+
+        if !query.isEmpty && hits.isEmpty {
+            line(Text("No matches.").foregroundStyle(Self.dim))
+        }
+    }
+
+    private func handleJump(_ press: KeyPress, query: String) -> KeyPress.Result {
+        let hits = player.playlist.matches(query)
+
+        switch press.key {
+        case .escape:
+            player.jumpQuery = nil
+        case .return:
+            if let first = hits.first { player.jump(to: first) }
+            player.jumpQuery = nil
+        case .delete:
+            player.jumpQuery = String(query.dropLast())
+        default:
+            guard press.characters.count == 1, let char = press.characters.first, !char.isNewline else {
+                return .ignored
+            }
+
+            if let digit = char.wholeNumberValue, char.isASCII {
+                if digit >= 1, hits.indices.contains(digit - 1) {
+                    player.jump(to: hits[digit - 1])
+                    player.jumpQuery = nil
+                }
+            } else {
+                player.jumpQuery = query + press.characters
+            }
+        }
+
+        return .handled
+    }
+
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         guard !press.modifiers.contains(.command) else { return .ignored }
 
+        if let query = player.jumpQuery { return handleJump(press, query: query) }
+
         switch press.characters {
+        case "j" where player.state != .loading && player.playlist.size > 0: player.jumpQuery = ""
         case "c", " ": player.togglePause()
         case "v": player.next()
         case "z": player.previous()

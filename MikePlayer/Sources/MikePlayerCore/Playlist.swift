@@ -87,6 +87,17 @@ public final class Playlist {
         try encoder.encode(songs.map(\.filename)).write(to: URL(fileURLWithPath: path))
     }
 
+    public func matches(_ query: String, limit: Int = 9) -> [Int] {
+        guard !query.isEmpty else { return [] }
+
+        let hits = songs.indices.lazy.filter {
+            self.songs[$0].info.localizedCaseInsensitiveContains(query)
+                || (self.songs[$0].filename as NSString).lastPathComponent.localizedCaseInsensitiveContains(query)
+        }
+
+        return Array(hits.prefix(limit))
+    }
+
     public func position(_ i: Int) -> String {
         let number = String(i + 1)
         let padding = String(repeating: " ", count: max(String(size).count - number.count, 0))
