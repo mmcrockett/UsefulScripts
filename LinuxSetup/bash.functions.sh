@@ -1009,4 +1009,6 @@ function pbcopy {
 }
 [[ -s "${LINUX_SETUP_DIR}/git.functions.sh" ]] && source "${LINUX_SETUP_DIR}/git.functions.sh"
 [[ -s "${LINUX_SETUP_DIR}/docker.functions.sh" ]] && source "${LINUX_SETUP_DIR}/docker.functions.sh"
+[[ -s "${LINUX_SETUP_DIR}/llm-helper.sh" ]] && source "${LINUX_SETUP_DIR}/llm-helper.sh"
 [[ -s "${LINUX_SETUP_DIR}/claude.functions.sh" ]] && source "${LINUX_SETUP_DIR}/claude.functions.sh"
+[[ -s "${LINUX_SETUP_DIR}/copilot.functions.sh" ]] && source "${LINUX_SETUP_DIR}/copilot.functions.sh"
