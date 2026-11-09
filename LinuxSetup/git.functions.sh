@@ -233,6 +233,11 @@ function git-resync-rebase {
     return 1
   fi
 
+  if [ -z "${START_BRANCH}" ] || [ "HEAD" = "${START_BRANCH}" ]; then
+    abort "Detached HEAD, refusing to rebase."
+    return 1
+  fi
+
   if [ "${MAIN_BRANCH}" = "${START_BRANCH}" ]; then
     abort "On ${MAIN_BRANCH}, doing nothing."
     return 1
@@ -243,12 +248,25 @@ function git-resync-rebase {
     return 1
   fi
 
+  local UPSTREAM
+  UPSTREAM="$("$_git_cmd" for-each-ref --format='%(upstream)' "refs/heads/${START_BRANCH}")" || return $?
+
   export GIT_HOOKS_OFF="TRUE"
-  git-handle-pr-merged \
-    && git checkout "${START_BRANCH}" \
-    && git fetch origin \
-    && git rebase "origin/${MAIN_BRANCH}" \
-    || STATUS=$?
+  if [ -z "${UPSTREAM}" ]; then
+    if "$_git_cmd" remote get-url origin > /dev/null 2>&1; then
+      git fetch origin \
+        && git rebase "origin/${MAIN_BRANCH}" \
+        || STATUS=$?
+    else
+      git rebase "${MAIN_BRANCH}" || STATUS=$?
+    fi
+  else
+    git-handle-pr-merged \
+      && git checkout "${START_BRANCH}" \
+      && git fetch origin \
+      && git rebase "origin/${MAIN_BRANCH}" \
+      || STATUS=$?
+  fi
   unset GIT_HOOKS_OFF
 
   return ${STATUS}
