@@ -253,7 +253,13 @@ function git-resync-rebase {
 
   export GIT_HOOKS_OFF="TRUE"
   if [ -z "${UPSTREAM}" ]; then
-    git rebase "${MAIN_BRANCH}" || STATUS=$?
+    if "$_git_cmd" remote get-url origin > /dev/null 2>&1; then
+      git fetch origin \
+        && git rebase "origin/${MAIN_BRANCH}" \
+        || STATUS=$?
+    else
+      git rebase "${MAIN_BRANCH}" || STATUS=$?
+    fi
   else
     git-handle-pr-merged \
       && git checkout "${START_BRANCH}" \
